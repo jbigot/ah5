@@ -1,0 +1,216 @@
+!$SH source fortran.bpp.sh
+!$SH MAXDIM=7
+
+!===========================================================================
+!> \brief Support for asynchronous HDF5 writing
+!>
+!> \date 2014-08-28
+!> \author J. Bigot
+!---------------------------------------------------------------------------
+module ah5
+
+  use HDF5
+  use iso_C_binding
+
+  implicit none
+
+  private
+
+  public :: ah5_init, ah5_finalize, ah5_start, ah5_write, ah5_finish
+
+  interface
+
+    function ah5_init(self, log_lvl, log_file) &
+        bind(C, name='ah5_init')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_init
+      type(C_ptr), intent(OUT) :: self
+      integer(C_int), value :: log_lvl
+      character(C_char), intent(IN) :: log_file
+
+    endfunction ah5_init
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_finalize(self) &
+        bind(C, name='ah5_finalize')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_finalize
+      type(C_ptr), value :: self
+
+    endfunction ah5_finalize
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_start(self, file_name) &
+        bind(C, name='ah5_start')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_start
+      type(C_ptr), value :: self
+      character(C_char), intent(IN) :: file_name
+
+    endfunction ah5_start
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_write_C(self, data, name, h5type, rank, dims, lbounds, &
+        ubounds) bind(C, name='ah5_write')
+
+      use HDF5, only: HID_T, HSIZE_T
+      use iso_C_binding
+
+      integer(C_int) :: ah5_write_C
+      type(C_ptr), value :: self
+      type(C_ptr), value :: data
+      character(KIND=C_char), intent(IN) :: name(*)
+      integer(HID_T), value :: h5type
+      integer(C_int), value :: rank
+      integer(HSIZE_T), intent(IN) :: dims(rank)
+      integer(HSIZE_T), intent(IN) :: lbounds(rank)
+      integer(HSIZE_T), intent(IN) :: ubounds(rank)
+
+    endfunction ah5_write_C
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_finish(self) &
+        bind(C, name='ah5_finish')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_finish
+      type(C_ptr), value :: self
+
+    endfunction ah5_finish
+
+  endinterface
+
+
+
+  interface ah5_write
+
+!$SH for T in ${HDF5TYPES}; do
+!$SH   for D in $(seq 0 ${MAXDIM}); do
+    module procedure ah5_write${T}${D}d
+!$SH   done
+!$SH done
+
+  endinterface ah5_write
+
+
+contains
+
+
+!$SH   for T in ${HDF5TYPES}; do # T: type
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_write${T}0d( self, data, name, ierr )
+
+    type(C_ptr), intent(INOUT) :: self
+    $(fort_type $T), intent(IN), target :: data !< the data to save
+    character(LEN=*), intent(IN) :: name
+    integer, intent(OUT), optional :: ierr
+
+    integer :: ii, err
+    character(C_char) :: name_C(len_trim(name)+1)
+    character(LEN=100):: msg
+
+    do ii = 1, len_trim(name)
+      name_C(ii) = name(ii:ii)
+    enddo
+    name_C(len_trim(name)+1) = C_NULL_CHAR
+
+    err = ah5_write_C( self, c_loc(data), name_C, &
+        $(hdf5_constant $T), 0, (/ 0_HSIZE_T /), (/ 0_HSIZE_T /), (/ 0_HSIZE_T /) )
+    if ( present(ierr) ) ierr = err
+
+  end subroutine ah5_write${T}0d
+  !---------------------------------------------------------------------------
+
+
+!$SH for D in $(seq 1 ${MAXDIM}); do # D: dimensions of array
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_write${T}${D}d( self, data, name, lbounds, ubounds, ierr )
+
+    type(C_ptr), intent(INOUT) :: self
+    $(fort_type $T), intent(IN), pointer :: data$(str_repeat ':' 1 $D ',' '(' ')') !< the data to save
+    character(LEN=*), intent(IN) :: name
+    integer, intent(IN), optional :: lbounds(${D})
+    integer, intent(IN), optional :: ubounds(${D})
+    integer, intent(OUT), optional :: ierr
+
+    integer :: ii, err
+    integer(HSIZE_T) :: lbounds_C(${D}), ubounds_C(${D}), dim_C(${D})
+    character(C_char) :: name_C(len_trim(name)+1)
+
+    do ii = 1, len_trim(name)
+      name_C(ii) = name(ii:ii)
+    enddo
+    name_C(len_trim(name)+1) = C_NULL_CHAR
+
+    do ii = 1, ${D}
+      ! revert the order for C
+      dim_C(${D}-ii+1) = size(data, ii)
+    enddo
+
+    if ( present(lbounds) ) then
+      do ii = 1, ${D}
+        ! revert the order for C
+        lbounds_C(${D}-ii+1) = lbounds(ii)-lbound(data, ii)
+      enddo
+    else
+      do ii = 1, ${D}
+        lbounds_C(ii) = 0
+      enddo
+    endif
+
+    if ( present(ubounds) ) then
+      do ii = 1, ${D}
+        ! revert the order for C
+        ubounds_C(${D}-ii+1) = ubounds(ii)-lbound(data, ii)+1
+      enddo
+    else
+      do ii = 1, ${D}
+        ! revert the order for C
+        ubounds_C(${D}-ii+1) = size(data, ii)
+      enddo
+    endif
+
+    err = ah5_write_C( self, &
+        c_loc(data$(str_repeat 'lbound(data, @N)' 1 ${D} $',&\n            ' '(' ')')), &
+        name_C, $(hdf5_constant $T), ${D}, dim_C, lbounds_C, ubounds_C )
+    if ( present(ierr) ) ierr = err
+
+  end subroutine ah5_write${T}${D}d
+  !---------------------------------------------------------------------------
+
+
+!$SH   done
+!$SH done
+endmodule ah5
+!---------------------------------------------------------------------------
