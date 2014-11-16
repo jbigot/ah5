@@ -64,7 +64,7 @@ set(WORK_DIR "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
 
 # in tree config
 
-set(Ah5_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "Ah5 Include path")
+set(Ah5_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/modinclude" CACHE STRING "Ah5 Include path")
 export(EXPORT Ah5Lib FILE "${PROJECT_BINARY_DIR}/Ah5Lib.cmake")
 configure_file(cmake/Ah5Config.cmake.in "${PROJECT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
 export(PACKAGE Ah5)
