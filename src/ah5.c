@@ -1,19 +1,26 @@
-/**************************************************************
- *  Copyright Euratom-CEA
+/*******************************************************************************
+ * Copyright (c) 2013-2014, Julien Bigot - CEA (julien.bigot@cea.fr)
+ * All rights reserved.
  *
- *  See AUTHORS file for the list of authors.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ * * Neither the name of the <organization> nor the
+ * names of its contributors may be used to endorse or promote products
+ * derived from this software without specific prior written permission.
  *
- *  This code GYSELA (for GYrokinetic SEmi-LAgrangian)
- *  is a 5D gyrokinetic global full-f code for simulating
- *  the plasma turbulence in a tokamak.
- *
- *  This software is governed by the CeCILL-B license
- *  under French law and abiding by the rules of distribution
- *  of free software.  You can  use, modify and redistribute
- *  the software under the terms of the CeCILL-B license as
- *  circulated by CEA, CNRS and INRIA at the following URL
- *  "http://www.cecill.info".
- **************************************************************/
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include <assert.h>
 #include <errno.h>

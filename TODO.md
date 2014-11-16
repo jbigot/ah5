@@ -1,0 +1,3 @@
+- [ ] Add doxygen generation to CMakeLists.txt
+- [ ] provide examples
+- [ ] write a doxygen main page
