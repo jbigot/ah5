@@ -33,6 +33,14 @@
 #include "ah5.h"
 
 
+/** Maximum number of thread supported in the multiple thread copy
+ *
+ * \todo automatically detect the actual max number of thread or dynamically
+ * detect it so as not to crash on MIC for example
+ */
+#define MAX_NB_THREAD 32
+
+
 /** Maximum number of dimensions supported for arrays
  */
 #define MAX_RANK 7
@@ -73,7 +81,6 @@ typedef struct data_id {
 } data_id_t;
 
 
-
 /** The various commands that can be issued to the writer thread
  */
 typedef enum thread_command {
@@ -81,7 +88,6 @@ typedef enum thread_command {
 	CMD_WRITE, /**< start executing the command list */
 	CMD_TERMINATE /**< stop execution */
 } thread_command_t;
-
 
 
 /** Status of the asynchronous HDF5 instance
@@ -100,12 +106,6 @@ struct ah5 {
 	/** the name of the file to write */
 	char* file_name;
 
-	/** the file where to log */
-	FILE* log_file;
-
-	/** the verbosity level */
-	int log_verbosity;
-
 	/** the command to execute */
 	thread_command_t thread_cmd;
 
@@ -118,24 +118,26 @@ struct ah5 {
 	/** The number of commands in the list */
 	size_t data_size;
 
+	/** the file where to log */
+	FILE* log_file;
+
+	/** the verbosity level */
+	int log_verbosity;
+
+	/** whether to write scalars as a 1D size 1 array */
+	bool scal_array;
+
+	/** whether to use all core for copies */
+	bool parallel_copy;
+
 };
 
 
-
-/** Maximum number of thread supported in the multiple thread copy
- *
- * \todo automatically detect the actual max number of thread or dynamically
- * detect it so as not to crash on MIC for example
- */
-#define MAX_NB_THREAD 32
-
-
-
-#define LOG_ERROR(msg , ...) do {\
+#define LOG_ERROR( ... ) do {\
 	if (self->log_verbosity >= VERBOSITY_ERROR) {\
 		FILE* out = self->log_file? self->log_file : stderr;\
 		fprintf(out, "*** Error: %s:%d: ", __FILE__, __LINE__);\
-		fprintf(out, msg , ##__VA_ARGS__);\
+		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
 		fflush(out);\
 	}\
@@ -143,69 +145,60 @@ struct ah5 {
 
 
 
-#define LOG_WARNING(msg , ...) do {\
+#define LOG_WARNING( ... ) do {\
 	if (self->log_verbosity >= VERBOSITY_WARNING) {\
 		FILE* out = self->log_file? self->log_file : stderr;\
 		fprintf(out, "*** Warning: %s:%d: ", __FILE__, __LINE__);\
-		fprintf(out, msg , ##__VA_ARGS__);\
+		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
 		fflush(out);\
 	}\
 } while (0)
 
 
-#ifndef NDEBUG
-#define LOG_STATUS(msg , ...) do {\
+#define LOG_STATUS( ... ) do {\
 	if (self->log_verbosity >= VERBOSITY_STATUS) {\
 		FILE* out = self->log_file? self->log_file : stderr;\
 		fprintf(out, "*** Status: %s:%d: ", __FILE__, __LINE__);\
-		fprintf(out , msg, ##__VA_ARGS__);\
+		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
 		fflush(out);\
 	}\
 } while (0)
-#else
-#define LOG_STATUS(msg , ...)
-#endif
 
 
 #ifndef NDEBUG
-#define LOG_DEBUG(msg , ...) do {\
+#define LOG_DEBUG( ... ) do {\
 	if (self->log_verbosity >= VERBOSITY_DEBUG) {\
 		FILE* out = self->log_file? self->log_file : stderr;\
 		fprintf(out, "*** Log: %s:%d: ", __FILE__, __LINE__);\
-		fprintf(out , msg, ##__VA_ARGS__);\
+		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
 		fflush(out);\
 	}\
 } while (0)
 #else
-#define LOG_DEBUG(msg , ...)
+#define LOG_DEBUG( ... )
 #endif
-
 
 
 #define SIGNAL_ERROR do {\
 	int errno_save = errno;\
-	LOG_ERROR("Exiting!");\
-	fprintf(stderr, " ----- error at %s:%i -----\n", __FILE__, __LINE__);\
+	LOG_ERROR(" ----- error at %s:%i, exiting -----\n", __FILE__, __LINE__);\
 	errno = errno_save;\
 	perror(NULL);\
 	exit(errno_save);\
 } while (0)
 
 
-
 #define RETURN_ERROR do {\
 	int errno_save = errno;\
-	LOG_ERROR("Returning an error!");\
-	fprintf(stderr, " ----- error at %s:%i -----\n", __FILE__, __LINE__);\
+	LOG_WARNING(" ----- returning error at %s:%i -----\n", __FILE__, __LINE__);\
 	errno = errno_save;\
 	perror(NULL);\
 	errno = errno_save;\
 	return errno_save;\
 } while (0)
-
 
 
 /** Returns the number of microseconds elapsed since EPOCH
@@ -217,7 +210,6 @@ inline static int64_t clockget()
 	gettimeofday(&tv, NULL);
 	return (int64_t)tv.tv_sec*1000*1000 + tv.tv_usec;
 }
-
 
 
 /** The function executed by the writer thread
@@ -286,7 +278,6 @@ static void* writer_thread_loop( void* self_void )
 }
 
 
-
 /** This function has the exact same prototype as memcpy and does the exact same thing,
  * except it does it in parallel
  * @param dest the destination of the copy
@@ -327,7 +318,6 @@ static void* memcpy_omp( void* dest, void* src, size_t size )
 }
 
 
-
 /** Copies a slice of a nD array (in fact a block) from src to dest.
  * @param dest the destination of the block (contiguous)
  * @param src the source array where the block is
@@ -336,11 +326,11 @@ static void* memcpy_omp( void* dest, void* src, size_t size )
  * @param sizes the sizes of the array in each dimension
  * @param lbounds the lower bounds of the block in each dimension
  * @param ubounds the upper bounds of the block in each dimension
- * @param parallelism whether to do the copy in parallel (if non-null)
+ * @param parallelism whether to do the copy in parallel
  * @return dest
  */
 static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
-		hsize_t* lbounds, hsize_t* ubounds, int parallelism )
+		hsize_t* lbounds, hsize_t* ubounds, bool parallelism )
 {
 	size_t ii, src_block_size, dst_block_size;
 
@@ -392,13 +382,13 @@ static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t
 }
 
 
-
 /** Waits for the worker thread to finish its previous run
  * @param self a pointer to the instance state
  * @returns 0 on success, non-null on error
  */
 inline static int writer_thread_wait( ah5_t self )
 {
+	size_t ii;
 	/* wait for the writer thread */
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
 	/* wait for a potential previous write command to be executed */
@@ -407,7 +397,6 @@ inline static int writer_thread_wait( ah5_t self )
 		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
 	}
 	/* free the previously allocated memory for field names */
-	size_t ii;
 	for ( ii = 0; ii<self->data_size; ++ii ) {
 		free(self->data[ii].name);
 	}
@@ -415,7 +404,6 @@ inline static int writer_thread_wait( ah5_t self )
 	self->data_size = 0;
 	return 0;
 }
-
 
 
 int ah5_init( ah5_t* pself )
@@ -429,6 +417,8 @@ int ah5_init( ah5_t* pself )
 	self->data_buffer = NULL;
 	self->data = NULL;
 	self->data_size = 0;
+	self->scal_array = true;
+	self->parallel_copy = true;
 	if ( pthread_mutex_init(&(self->mutex), NULL) ) RETURN_ERROR;
 	if ( pthread_cond_init(&(self->cond), NULL) ) RETURN_ERROR;
 	if ( pthread_create(&(self->thread), NULL, writer_thread_loop, self) ) RETURN_ERROR;
@@ -436,7 +426,6 @@ int ah5_init( ah5_t* pself )
 	*pself = self;
 	return 0;
 }
-
 
 
 int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl )
@@ -448,12 +437,12 @@ int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl )
 }
 
 
-
 int ah5_set_logfile( ah5_t self, char* log_file )
 {
+	int log_fd;
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
 	if ( self->log_file ) fclose(self->log_file);
-	int log_fd = open(log_file, O_WRONLY|O_APPEND|O_CREAT|O_SYNC|O_DSYNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+	log_fd = open(log_file, O_WRONLY|O_APPEND|O_CREAT|O_SYNC|O_DSYNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
 	if ( log_fd == -1 ) RETURN_ERROR;
 	self->log_file = fdopen(log_fd, "a");
 	if ( !self->log_file ) RETURN_ERROR;
@@ -461,6 +450,23 @@ int ah5_set_logfile( ah5_t self, char* log_file )
 	return 0;
 }
 
+
+int ah5_set_scalarray( ah5_t self, bool scal_array )
+{
+	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
+	self->scal_array = scal_array;
+	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
+	return 0;
+}
+
+
+int ah5_set_paracopy( ah5_t self, bool parallel_copy )
+{
+	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
+	self->parallel_copy = parallel_copy;
+	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
+	return 0;
+}
 
 
 int ah5_finalize( ah5_t self )
@@ -484,7 +490,6 @@ int ah5_finalize( ah5_t self )
 }
 
 
-
 int ah5_start( ah5_t self, char* file_name )
 {
 	/* wait for the writer thread to finish its work */
@@ -497,29 +502,28 @@ int ah5_start( ah5_t self, char* file_name )
 }
 
 
-
 int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 		hsize_t* dims, hsize_t* lbounds, hsize_t* ubounds )
 {
+	int ii;
 	LOG_DEBUG("adding a write command to the list");
 	/* increase the array containing all write commands */
 	++self->data_size;
 	self->data = realloc(self->data, (self->data_size)*sizeof(data_id_t));
-#ifndef HDF5_SCALAR_AS_SCALAR
-	/* replace scalars by rank 1 array */
-	hsize_t hsize_zero = 0;
-	hsize_t hsize_one = 1;
-	if ( rank == 0 ) {
-		rank = 1;
-		dims = &hsize_one;
-		lbounds = &hsize_zero;
-		ubounds = &hsize_one;
+	if ( self->scal_array ) {
+		/* replace scalars by rank 1 array */
+		hsize_t hsize_zero = 0;
+		hsize_t hsize_one = 1;
+		if ( rank == 0 ) {
+			rank = 1;
+			dims = &hsize_one;
+			lbounds = &hsize_zero;
+			ubounds = &hsize_one;
+		}
 	}
-#endif
 	/* save the info in the last element of the array */
 	self->data[self->data_size-1].buf = data;
 	self->data[self->data_size-1].rank = rank;
-	int ii;
 	for ( ii = 0; ii<rank; ++ii ) {
 		self->data[self->data_size-1].dims[ii] = dims[ii];
 		self->data[self->data_size-1].lbounds[ii] = lbounds[ii];
@@ -533,13 +537,13 @@ int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 }
 
 
-
 int ah5_finish( ah5_t self )
 {
-	LOG_DEBUG("sealing write command list");
 	size_t buf_size = 0;
 	size_t ii;
+	void* buf;
 	int64_t start_time = clockget();
+	LOG_DEBUG("sealing write command list");
 	/* compute the total size of the data */
 	for ( ii = 0; ii<self->data_size; ++ii ) {
 		size_t data_size = H5Tget_size(self->data[ii].type);
@@ -553,14 +557,15 @@ int ah5_finish( ah5_t self )
 	/* allocate a buffer able to contain it all */
 	self->data_buffer = realloc(self->data_buffer, buf_size);
 	/* copy the data into the bufer */
-	void* buf = self->data_buffer;
+	buf = self->data_buffer;
 	for ( ii = 0; ii<self->data_size; ++ii ) {
+		size_t data_size;
+		unsigned dim;
 		int64_t start_time = clockget();
 		slicecpy(buf, self->data[ii].buf, self->data[ii].type, self->data[ii].rank, self->data[ii].dims,
-					self->data[ii].lbounds, self->data[ii].ubounds, 1);
-		size_t data_size = H5Tget_size(self->data[ii].type);
+						self->data[ii].lbounds, self->data[ii].ubounds, self->parallel_copy);
+		data_size = H5Tget_size(self->data[ii].type);
 		/* since only the data has been copied, update dims, lbounds & ubounds */
-		unsigned dim;
 		for ( dim = 0; dim<self->data[ii].rank; ++dim ) {
 			data_size *= self->data[ii].ubounds[dim]-self->data[ii].lbounds[dim];
 			self->data[ii].dims[dim] = self->data[ii].ubounds[dim] - self->data[ii].lbounds[dim];

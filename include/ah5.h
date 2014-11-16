@@ -2,6 +2,7 @@
 #define ASYNC_HDF5_H__
 
 #include <hdf5.h>
+#include <stdbool.h>
 
 typedef enum {
 	VERBOSITY_ERROR=0,
@@ -34,6 +35,22 @@ int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl );
  * @invariant the writer thread is ready
  */
 int ah5_set_logfile( ah5_t self, char* log_file );
+
+/** Sets whether to write scalars as a 1D size 1 array
+ * @param self a pointer to the instance state
+ * @param scal_array whether to write scalars as a 1D size 1 array
+ * @returns 0 on success, non-null on error
+ * @invariant the writer thread is ready
+ */
+int ah5_set_scalarray( ah5_t self, bool scal_array );
+
+/** Sets whether to do copies in parallel using all cores
+ * @param self a pointer to the instance state
+ * @param parallel_copy Whether to do copies in parallel using all cores
+ * @returns 0 on success, non-null on error
+ * @invariant the writer thread is ready
+ */
+int ah5_set_paracopy( ah5_t self, bool parallel_copy );
 
 /** Finalizes the asynchronous HDF5 writer instance
  * @param self a pointer to the instance state
