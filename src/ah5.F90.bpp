@@ -16,21 +16,25 @@ module ah5
 
   private
 
+  type :: ah5_t
+
+    type(C_ptr) :: content
+
+  endtype ah5_t
+
   public :: ah5_init, ah5_finalize, ah5_start, ah5_write, ah5_finish
 
   interface
 
-    function ah5_init(self, log_lvl, log_file) &
+    function ah5_init_impl(self) &
         bind(C, name='ah5_init')
 
       use iso_C_binding
 
-      integer(C_int) :: ah5_init
+      integer(C_int) :: ah5_init_impl
       type(C_ptr), intent(OUT) :: self
-      integer(C_int), value :: log_lvl
-      character(C_char), intent(IN) :: log_file
 
-    endfunction ah5_init
+    endfunction ah5_init_impl
 
   endinterface
 
@@ -38,15 +42,83 @@ module ah5
 
   interface
 
-    function ah5_finalize(self) &
+    function ah5_set_loglvl_impl(self, log_lvl) &
+        bind(C, name='ah5_set_loglvl')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_set_loglvl_impl
+      type(C_ptr), value :: self
+      integer(C_int), value :: log_lvl
+
+    endfunction ah5_set_loglvl_impl
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_set_logfile_impl(self, log_file) &
+        bind(C, name='ah5_set_logfile')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_set_logfile_impl
+      type(C_ptr), value :: self
+      character(C_char), intent(IN) :: log_file
+
+    endfunction ah5_set_logfile_impl
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_set_scalarray_impl(self, scalar_as_array) &
+        bind(C, name='ah5_set_scalarray')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_set_scalarray_impl
+      type(C_ptr), value :: self
+      integer(C_int), value :: scalar_as_array
+
+    endfunction ah5_set_scalarray_impl
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_set_paracopy_impl(self, parallel_copy) &
+        bind(C, name='ah5_set_paracopy')
+
+      use iso_C_binding
+
+      integer(C_int) :: ah5_set_paracopy_impl
+      type(C_ptr), value :: self
+      integer(C_int), value :: parallel_copy
+
+    endfunction ah5_set_paracopy_impl
+
+  endinterface
+
+
+
+  interface
+
+    function ah5_finalize_impl(self) &
         bind(C, name='ah5_finalize')
 
       use iso_C_binding
 
-      integer(C_int) :: ah5_finalize
+      integer(C_int) :: ah5_finalize_impl
       type(C_ptr), value :: self
 
-    endfunction ah5_finalize
+    endfunction ah5_finalize_impl
 
   endinterface
 
@@ -54,16 +126,16 @@ module ah5
 
   interface
 
-    function ah5_start(self, file_name) &
+    function ah5_start_impl(self, file_name) &
         bind(C, name='ah5_start')
 
       use iso_C_binding
 
-      integer(C_int) :: ah5_start
+      integer(C_int) :: ah5_start_impl
       type(C_ptr), value :: self
       character(C_char), intent(IN) :: file_name
 
-    endfunction ah5_start
+    endfunction ah5_start_impl
 
   endinterface
 
@@ -71,13 +143,13 @@ module ah5
 
   interface
 
-    function ah5_write_C(self, data, name, h5type, rank, dims, lbounds, &
+    function ah5_write_impl(self, data, name, h5type, rank, dims, lbounds, &
         ubounds) bind(C, name='ah5_write')
 
       use HDF5, only: HID_T, HSIZE_T
       use iso_C_binding
 
-      integer(C_int) :: ah5_write_C
+      integer(C_int) :: ah5_write_impl
       type(C_ptr), value :: self
       type(C_ptr), value :: data
       character(KIND=C_char), intent(IN) :: name(*)
@@ -87,7 +159,7 @@ module ah5
       integer(HSIZE_T), intent(IN) :: lbounds(rank)
       integer(HSIZE_T), intent(IN) :: ubounds(rank)
 
-    endfunction ah5_write_C
+    endfunction ah5_write_impl
 
   endinterface
 
@@ -95,15 +167,15 @@ module ah5
 
   interface
 
-    function ah5_finish(self) &
+    function ah5_finish_impl(self) &
         bind(C, name='ah5_finish')
 
       use iso_C_binding
 
-      integer(C_int) :: ah5_finish
+      integer(C_int) :: ah5_finish_impl
       type(C_ptr), value :: self
 
-    endfunction ah5_finish
+    endfunction ah5_finish_impl
 
   endinterface
 
@@ -121,6 +193,125 @@ module ah5
 
 
 contains
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_init( self, err )
+
+    type(ah5_t), intent(OUT) :: self
+    integer, intent(OUT) :: err
+
+    err = int(ah5_init_impl(self%content))
+
+  endsubroutine ah5_init
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_set_loglvl( self, log_lvl, err )
+
+    type(ah5_t), value :: self
+    integer, value :: log_lvl
+    integer, intent(OUT) :: err
+
+    err = int(ah5_set_loglvl_impl(self%content, int(log_lvl, C_int)))
+
+  endsubroutine ah5_set_loglvl
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_set_logfile( self, log_file, err )
+
+    type(ah5_t), value :: self
+    character(LEN=*), intent(IN) :: log_file
+    integer, intent(OUT) :: err
+
+    character(C_char) :: C_log_file(:)
+    integer :: ii
+
+    allocate( C_log_file(len_trim(log_file)+1) )
+    do ii = 1, len_trim(log_file)
+      C_log_file(ii) = char(log_file(ii:ii), C_char)
+    enddo
+    C_log_file(len_trim(log_file)+1) = C_NULL_CHAR
+
+    err = int(ah5_set_loglvl_impl(self%content, C_log_file))
+
+  endsubroutine ah5_set_logfile
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_set_scalarray( self, scalar_as_array, err )
+
+    type(ah5_t), value :: self
+    integer, value :: scalar_as_array
+    integer, intent(OUT) :: err
+
+    err = int(ah5_set_scalarray_impl(self%content, int(scalar_as_array, C_int)))
+
+  endsubroutine ah5_set_scalarray
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_set_paracopy( self, parallel_copy, err )
+
+    type(ah5_t), value :: self
+    integer, value :: parallel_copy
+    integer, intent(OUT) :: err
+
+    err = int(ah5_set_paracopy_impl(self%content, int(parallel_copy, C_int)))
+
+  endsubroutine ah5_set_paracopy
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_finalize( self, err )
+
+    type(ah5_t), value :: self
+    integer, intent(OUT) :: err
+
+    err = int(ah5_finalize_impl(self%content))
+
+  endsubroutine ah5_finalize
+  !---------------------------------------------------------------------------
+
+
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_start( self, file_name, err )
+
+    type(ah5_t), value :: self
+    character(LEN=*), intent(IN) :: file_name
+    integer, intent(OUT) :: err
+
+    character(C_char) :: C_file_name(:)
+    integer :: ii
+
+    allocate( C_file_name(len_trim(file_name)+1) )
+    do ii = 1, len_trim(file_name)
+      C_file_name(ii) = char(file_name(ii:ii), C_char)
+    enddo
+    C_file_name(len_trim(file_name)+1) = C_NULL_CHAR
+
+    err = int(ah5_start_impl(self%content, C_file_name))
+
+  endsubroutine ah5_start
+  !---------------------------------------------------------------------------
 
 
 !$SH   for T in ${HDF5TYPES}; do # T: type
@@ -212,5 +403,19 @@ contains
 
 !$SH   done
 !$SH done
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_finish( self, err )
+
+    type(ah5_t), value :: self
+    integer, intent(OUT) :: err
+
+    err = int(ah5_finish_impl(self%content))
+
+  endsubroutine ah5_finish
+  !---------------------------------------------------------------------------
+
+
 endmodule ah5
 !---------------------------------------------------------------------------

@@ -125,10 +125,10 @@ struct ah5 {
 	int log_verbosity;
 
 	/** whether to write scalars as a 1D size 1 array */
-	bool scal_array;
+	int scalar_as_array;
 
 	/** whether to use all core for copies */
-	bool parallel_copy;
+	int parallel_copy;
 
 };
 
@@ -330,7 +330,7 @@ static void* memcpy_omp( void* dest, void* src, size_t size )
  * @return dest
  */
 static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
-		hsize_t* lbounds, hsize_t* ubounds, bool parallelism )
+		hsize_t* lbounds, hsize_t* ubounds, int parallelism )
 {
 	size_t ii, src_block_size, dst_block_size;
 
@@ -417,8 +417,8 @@ int ah5_init( ah5_t* pself )
 	self->data_buffer = NULL;
 	self->data = NULL;
 	self->data_size = 0;
-	self->scal_array = true;
-	self->parallel_copy = true;
+	self->scalar_as_array = 1;
+	self->parallel_copy = 1;
 	if ( pthread_mutex_init(&(self->mutex), NULL) ) RETURN_ERROR;
 	if ( pthread_cond_init(&(self->cond), NULL) ) RETURN_ERROR;
 	if ( pthread_create(&(self->thread), NULL, writer_thread_loop, self) ) RETURN_ERROR;
@@ -451,16 +451,16 @@ int ah5_set_logfile( ah5_t self, char* log_file )
 }
 
 
-int ah5_set_scalarray( ah5_t self, bool scal_array )
+int ah5_set_scalarray( ah5_t self, int scalar_as_array )
 {
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	self->scal_array = scal_array;
+	self->scalar_as_array = scalar_as_array;
 	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
 
 
-int ah5_set_paracopy( ah5_t self, bool parallel_copy )
+int ah5_set_paracopy( ah5_t self, int parallel_copy )
 {
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
 	self->parallel_copy = parallel_copy;
@@ -510,7 +510,7 @@ int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 	/* increase the array containing all write commands */
 	++self->data_size;
 	self->data = realloc(self->data, (self->data_size)*sizeof(data_id_t));
-	if ( self->scal_array ) {
+	if ( self->scalar_as_array ) {
 		/* replace scalars by rank 1 array */
 		hsize_t hsize_zero = 0;
 		hsize_t hsize_one = 1;
