@@ -22,7 +22,8 @@ module ah5
 
   endtype ah5_t
 
-  public :: ah5_init, ah5_finalize, ah5_start, ah5_write, ah5_finish
+  public :: ah5_init, ah5_set_loglvl, ah5_set_logfile, ah5_set_scalarray, &
+      ah5_set_paracopy, ah5_finalize, ah5_start, ah5_write, ah5_finish
 
   interface
 
@@ -66,7 +67,7 @@ module ah5
 
       integer(C_int) :: ah5_set_logfile_impl
       type(C_ptr), value :: self
-      character(C_char), intent(IN) :: log_file
+      character(C_char), dimension(:), intent(IN) :: log_file
 
     endfunction ah5_set_logfile_impl
 
@@ -133,7 +134,7 @@ module ah5
 
       integer(C_int) :: ah5_start_impl
       type(C_ptr), value :: self
-      character(C_char), intent(IN) :: file_name
+      character(C_char), dimension(:), intent(IN) :: file_name
 
     endfunction ah5_start_impl
 
@@ -231,16 +232,16 @@ contains
     character(LEN=*), intent(IN) :: log_file
     integer, intent(OUT) :: err
 
-    character(C_char) :: C_log_file(:)
+    character(C_char), allocatable :: C_log_file(:)
     integer :: ii
 
     allocate( C_log_file(len_trim(log_file)+1) )
     do ii = 1, len_trim(log_file)
-      C_log_file(ii) = char(log_file(ii:ii), C_char)
+      C_log_file(ii) = log_file(ii:ii)
     enddo
     C_log_file(len_trim(log_file)+1) = C_NULL_CHAR
 
-    err = int(ah5_set_loglvl_impl(self%content, C_log_file))
+    err = int(ah5_set_logfile_impl(self%content, C_log_file))
 
   endsubroutine ah5_set_logfile
   !---------------------------------------------------------------------------
@@ -299,12 +300,12 @@ contains
     character(LEN=*), intent(IN) :: file_name
     integer, intent(OUT) :: err
 
-    character(C_char) :: C_file_name(:)
+    character(C_char), allocatable :: C_file_name(:)
     integer :: ii
 
     allocate( C_file_name(len_trim(file_name)+1) )
     do ii = 1, len_trim(file_name)
-      C_file_name(ii) = char(file_name(ii:ii), C_char)
+      C_file_name(ii) = file_name(ii:ii)
     enddo
     C_file_name(len_trim(file_name)+1) = C_NULL_CHAR
 
@@ -326,7 +327,7 @@ contains
     integer, intent(OUT), optional :: ierr
 
     integer :: ii, err
-    character(C_char) :: name_C(len_trim(name)+1)
+    character(C_char), allocatable :: name_C(len_trim(name)+1)
     character(LEN=100):: msg
 
     do ii = 1, len_trim(name)
