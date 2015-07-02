@@ -3,6 +3,14 @@
 Ah5 (Asynchronous HDF5) is a library enabling the use of a dedicated thread to
 write HDF5 files in an asynchronous fashion.
 
+## Getting the source
+
+There is no release yet, you have to use git to get the source. To do so, use
+the --recursive option to clone in order to also download the BPP dependancy.
+If you have already cloned AH5 without the submodules, you can get them with
+    $ git submodule init
+    $ git submodule update
+
 ## Usage
 
 There are two ways you can use Ah5 from your project:
