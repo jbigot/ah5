@@ -46,3 +46,13 @@ CMAKE_INSTALL_PREFIX cmake parameter:
 ```
 cmake -DCMAKE_INSTALL_PREFIX=/usr .
 ```
+
+## Examples
+
+You can find two usage examples in the `test` directory. You can compile them
+with the following commands after having installed Ah5.
+```
+cd tests
+cmake .
+make
+```
