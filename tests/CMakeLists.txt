@@ -22,6 +22,26 @@
 # THE SOFTWARE.
 ################################################################################
 
-set(AH5_INCLUDE_PATH "@HDF5_C_INCLUDE_PATH@")
-set(AH5_INCLUDE_PATH "${AH5_INCLUDE_PATH}" @Ah5_INCLUDE_PATH@)
-include("${CMAKE_CURRENT_LIST_DIR}/Ah5Lib.cmake")
+cmake_minimum_required(VERSION 2.8)
+# protect the project call to workaround a cmake bug
+project(Ah5_tests C Fortran)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/")
+
+include(AppendProperty)
+
+find_package(Ah5 REQUIRED)
+find_package(OMP REQUIRED)
+
+include_directories(${AH5_INCLUDE_PATH})
+
+add_executable(test_ah5_c test_ah5.c)
+append_property(TARGET test_ah5_c PROPERTY LINK_FLAGS " ${OMP_C_LINK_FLAGS}")
+find_library(M_LIB m)
+target_link_libraries(test_ah5_c ah5.shared ${M_LIB})
+# or target_link_libraries(test_ah5_c ah5.static)
+
+add_executable(test_ah5_f test_ah5.F90)
+append_property(TARGET test_ah5_f PROPERTY LINK_FLAGS " ${OMP_Fortran_LINK_FLAGS}")
+target_link_libraries(test_ah5_f ah5.static ah5_f90.static)
+# or target_link_libraries(test_ah5_f ah5.shared)

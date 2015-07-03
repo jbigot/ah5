@@ -109,4 +109,3 @@ install(FILES
 		"${WORK_DIR}/Ah5Config.cmake"
 	DESTINATION "lib/CMake/Ah5"
 )
-
