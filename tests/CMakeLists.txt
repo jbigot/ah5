@@ -28,12 +28,14 @@ project(Ah5_tests C Fortran)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/")
 
+add_subdirectory(.. ah5)
+
 include(AppendProperty)
 
-find_package(Ah5 REQUIRED)
+# find_package(Ah5 REQUIRED)
 find_package(OMP REQUIRED)
 
-include_directories(${AH5_INCLUDE_PATH})
+include_directories(${Ah5_INCLUDE_PATH})
 
 add_executable(test_ah5_c test_ah5.c)
 append_property(TARGET test_ah5_c PROPERTY LINK_FLAGS " ${OMP_C_LINK_FLAGS}")
@@ -43,5 +45,5 @@ target_link_libraries(test_ah5_c ah5.shared ${M_LIB})
 
 add_executable(test_ah5_f test_ah5.F90)
 append_property(TARGET test_ah5_f PROPERTY LINK_FLAGS " ${OMP_Fortran_LINK_FLAGS}")
-target_link_libraries(test_ah5_f ah5.static ah5_f90.static)
+target_link_libraries(test_ah5_f ah5.static ah5_f90.static  ${HDF5_STATIC_Fortran_LIBRARIES} ${HDF5_STATIC_C_LIBRARIES})
 # or target_link_libraries(test_ah5_f ah5.shared)
