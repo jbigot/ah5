@@ -27,16 +27,16 @@
 #include <math.h>
 #include <ah5.h>
 
-#define DATA_WIDTH 1024
-#define DATA_HEIGHT 1024
-#define ACC(data, xx, yy) data[(((xx)+DATA_WIDTH)%DATA_WIDTH)+(((yy)+DATA_HEIGHT)%DATA_HEIGHT)*DATA_WIDTH]
+#define DATA_HEIGHT 2048
+#define DATA_WIDTH 512
+#define ACC(data, yy, xx) data[(((xx)+DATA_WIDTH)%DATA_WIDTH)+(((yy)+DATA_HEIGHT)%DATA_HEIGHT)*DATA_WIDTH]
 
 void data_init(double *data)
 {
 	int xx, yy;
 	for (yy=0; yy<DATA_HEIGHT; ++yy) {
 		for (xx=0; xx<DATA_WIDTH; ++xx) {
-			ACC(data, xx, yy) = sin(1.*xx/DATA_WIDTH)*sin(1.*yy/DATA_HEIGHT);
+			ACC(data, yy, xx) = sin((1.*xx)/DATA_WIDTH)*sin((1.*yy)/DATA_HEIGHT);
 		}
 	}
 }
@@ -46,12 +46,12 @@ void data_compute(double *data_in, double *data_out)
 	int xx, yy;
 	for (yy=0; yy<DATA_HEIGHT; ++yy) {
 		for (xx=0; xx<DATA_WIDTH; ++xx) {
-			ACC(data_out, xx, yy) =
-					.5 * ACC(data_in, xx, yy)
-					+ .125 * ACC(data_in, xx-1, yy)
-					+ .125 * ACC(data_in, xx+1, yy)
-					+ .125 * ACC(data_in, xx, yy-1)
-					+ .125 * ACC(data_in, xx, yy+1)
+			ACC(data_out, yy, xx) =
+					.5 * ACC(data_in, yy, xx)
+					+ .125 * ACC(data_in, yy, xx-1)
+					+ .125 * ACC(data_in, yy, xx+1)
+					+ .125 * ACC(data_in, yy-1, xx)
+					+ .125 * ACC(data_in, yy+1, xx)
 			;
 		}
 	}
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	int ii;
 	char fname[15];
 	hsize_t zsize[2] = {0, 0};
-	hsize_t bounds[2] = { DATA_WIDTH, DATA_HEIGHT };
+	hsize_t bounds[2] = { DATA_HEIGHT, DATA_WIDTH };
 
 
 	ah5_init(&ah5_inst);

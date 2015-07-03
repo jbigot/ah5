@@ -26,8 +26,8 @@ program test_ah5
 
 use ah5
 
-integer, parameter :: DATA_HEIGHT = 1024
-integer, parameter :: DATA_WIDTH = 1024
+integer, parameter :: DATA_HEIGHT = 2048
+integer, parameter :: DATA_WIDTH = 512
 
 type(ah5_t) :: ah5_inst
 
@@ -42,7 +42,7 @@ allocate(data_next(DATA_WIDTH,DATA_HEIGHT))
 
 do ii = 0, 100
   if ( mod(ii, 10) == 0 ) then
-    write (fname, '("data.",I5.1,".h5")') ii
+    write (fname, '("data.",I4.4,".h5")') ii
     call ah5_start(ah5_inst, fname, err)
     call ah5_write(ah5_inst, data, "data", err)
     call ah5_finish(ah5_inst, err)
@@ -54,7 +54,7 @@ do ii = 0, 100
   data_next => data_swap
 enddo
 
-write (fname, '("data.",I5.1,".h5")') ii
+write (fname, '("data.",I4.4,".h5")') ii
 call ah5_start(ah5_inst, fname, err)
 call ah5_write(ah5_inst, data, "data", err)
 call ah5_finish(ah5_inst, err)
@@ -74,7 +74,7 @@ subroutine data_init(data)
 
   do xx = 1, DATA_WIDTH
     do yy = 1, DATA_HEIGHT
-      data(xx,yy) = sin(1.*xx/DATA_WIDTH)*sin(1.*yy/DATA_HEIGHT)
+      data(xx,yy) = sin(1.*(xx-1.)/DATA_WIDTH)*sin(1.*(yy-1.)/DATA_HEIGHT)
     enddo
   enddo
 
@@ -92,10 +92,10 @@ subroutine data_compute(data_in, data_out)
     do yy = 1, DATA_HEIGHT
       data_out(xx,yy) = &
           0.5 * data_in(xx, yy) &
-          + 0.125 * data_in(mod(xx-1+DATA_WIDTH,DATA_WIDTH), yy) &
-          + 0.125 * data_in(mod(xx+1, DATA_WIDTH), yy) &
-          + 0.125 * data_in(xx, mod(yy+DATA_HEIGHT-1,DATA_HEIGHT)) &
-          + 0.125 * data_in(xx, mod(yy+1,DATA_HEIGHT))
+          + 0.125 * data_in(mod(xx+DATA_WIDTH-2,DATA_WIDTH)+1, yy) &
+          + 0.125 * data_in(mod(xx, DATA_WIDTH)+1, yy) &
+          + 0.125 * data_in(xx, mod(yy+DATA_HEIGHT-2,DATA_HEIGHT)+1) &
+          + 0.125 * data_in(xx, mod(yy,DATA_HEIGHT)+1)
     enddo
   enddo
 
