@@ -107,14 +107,14 @@ struct ah5 {
 	/** a condition variable used to signal that the command has changed */
 	pthread_cond_t cond;
 
+	/** the command to execute */
+	thread_command_t thread_cmd;
+
 	/** the thread executing the command list */
 	pthread_t thread;
 
 	/** the name of the file to write */
 	char* file_name;
-
-	/** the command to execute */
-	thread_command_t thread_cmd;
 
 	/** The buffer where the data is copied */
 	void* data_buffer;
@@ -218,6 +218,11 @@ inline static int64_t clockget()
 	return (int64_t)tv.tv_sec*1000*1000 + tv.tv_usec;
 }
 
+#if H5_VERS_MAJOR >= 1 && H5_VERS_MINOR >= 8 && H5_VERS_RELEASE >= 14
+#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_ID_g
+#else
+#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_g
+#endif
 
 /** The function executed by the writer thread
  * @param self_void a pointer to the instance state as a void*
@@ -226,9 +231,7 @@ inline static int64_t clockget()
 static void* writer_thread_loop( void* self_void )
 {
 	ah5_t self = self_void;
-	if ( pthread_mutex_lock(&(self->mutex)) ) {
-		SIGNAL_ERROR;
-	}
+	if ( pthread_mutex_lock(&(self->mutex)) ) SIGNAL_ERROR;
 	LOG_STATUS("async HDF5 thread started");
 	for (;;) {
 		int64_t start_time;
@@ -257,7 +260,7 @@ static void* writer_thread_loop( void* self_void )
 			hid_t space_id, plist_id, dset_id;
 			LOG_DEBUG("async HDF5 writing data[%lu]: %s of rank %u", (unsigned long)did, self->data[did].name, (unsigned)self->data[did].rank);
 			space_id = H5Screate_simple(self->data[did].rank, self->data[did].dims, NULL);
-			plist_id = H5Pcreate(H5P_CLS_DATASET_CREATE_g);
+			plist_id = H5Pcreate(CLS_DSET_CREATE);
 			if ( H5Pset_layout(plist_id, H5D_CONTIGUOUS) ) SIGNAL_ERROR;
 #if ( H5Dcreate_vers == 2 )
 			dset_id = H5Dcreate2(file_id, self->data[did].name, self->data[did].type,
