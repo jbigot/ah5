@@ -3,8 +3,12 @@
 # === Variables ===
 #
 # This module accepts the following optional variable:
-#   HDF5_PARALLEL                     Looks for the parallel version if set to
-#                                     ON, sequential otherwise
+#   HDF5_PARALLEL                     can be one of
+#                                     * "PAR": looks for the parallel version
+#                                     * "SEQ": looks for the sequential version
+#                                     * "ANY" or "": prefer the sequential
+#                                       version but fallback on the parallel
+#                                       version if not found
 #
 # This module will set the following variables per language in your project,
 # where <lang> is one of C, CXX, or Fortran:
@@ -83,24 +87,6 @@ include(FindPackageHandleStandardArgs)
 include(GetPrerequisites)
 
 
-# This part detects HDF5 compilers.
-#
-# If you want to force a particular HDF5 compiler other than what we autodetect (e.g. if you
-# want to compile regular stuff with GNU and parallel stuff with Intel), you can always set
-# your favorite HDF5_<lang>_COMPILER explicitly and this stuff will be ignored.
-
-# HDF5 compiler names
-if("${HDF5_PARALLEL}")
-	find_package(MPI)
-	set(_HDF5_C_COMPILER_NAMES         h5pcc)
-	set(_HDF5_CXX_COMPILER_NAMES       h5pc++)
-	set(_HDF5_Fortran_COMPILER_NAMES   h5pfc)
-else()
-	set(_HDF5_C_COMPILER_NAMES         h5cc)
-	set(_HDF5_CXX_COMPILER_NAMES       h5c++)
-	set(_HDF5_Fortran_COMPILER_NAMES   h5fc)
-endif()
-
 # interrogate_hdf5_compiler(lang try_libs shared_hdf5)
 #
 # Attempts to extract compiler and linker args from an HDF5 compiler. The arguments set
@@ -117,7 +103,7 @@ endif()
 # way.  In general, this is not as effective as interrogating the compilers, as it
 # ignores language-specific flags and libraries.
 #
-function (interrogate_hdf5_compiler lang try_libs shared_hdf5)
+function (interrogate_hdf5_compiler lang try_libs shared_hdf5 parallel_hdf5)
 	# HDF5_${lang}_NO_INTERROGATE will be set to a compiler name when the *regular* compiler was
 	# discovered to be the HDF5 compiler. If the user force-sets another HDF5 compiler,
 	# HDF5_${lang}_COMPILER won't be equal to HDF5_${lang}_NO_INTERROGATE, and we'll inspect
@@ -306,7 +292,8 @@ function (interrogate_hdf5_compiler lang try_libs shared_hdf5)
 			set(H5SHARED _SHARED)
 		endif()
 		# If we found HDF5, set up all of the appropriate cache entries
-		if ("${HDF5_PARALLEL}")
+		if ("${parallel_hdf5}")
+			find_package(MPI)
 			set(HDF5_COMPILE_FLAGS_WORK "${HDF5_COMPILE_FLAGS_WORK} ${MPI_${lang}_COMPILE_FLAGS}")
 			set(HDF5_INCLUDE_PATH_WORK "${HDF5_INCLUDE_PATH_WORK}" "${MPI_${lang}_INCLUDE_PATH}")
 			set(HDF5_LINK_FLAGS_WORK "${HDF5_LINK_FLAGS_WORK} ${MPI_${lang}_LINK_FLAGS}")
@@ -331,6 +318,54 @@ function (interrogate_hdf5_compiler lang try_libs shared_hdf5)
 	endif()
 endfunction()
 
+# Find the compilers and sends them off for interrogation.
+function(hdf5_try_find parallel_hdf5)
+	# HDF5 compiler names
+	if("${parallel_hdf5}")
+		set(_HDF5_C_COMPILER_NAMES         h5pcc)
+		set(_HDF5_CXX_COMPILER_NAMES       h5pc++)
+		set(_HDF5_Fortran_COMPILER_NAMES   h5pfc)
+	else()
+		set(_HDF5_C_COMPILER_NAMES         h5cc)
+		set(_HDF5_CXX_COMPILER_NAMES       h5c++)
+		set(_HDF5_Fortran_COMPILER_NAMES   h5fc)
+	endif()
+	unset(_HDF5_COMPILERS)
+	foreach (lang C CXX Fortran)
+		if (CMAKE_${lang}_COMPILER_WORKS)
+			# If the user supplies a compiler *name* instead of an absolute path, assume that we need to find THAT compiler.
+			if (HDF5_${lang}_COMPILER)
+				is_file_executable(HDF5_${lang}_COMPILER HDF5_COMPILER_IS_EXECUTABLE)
+				if (NOT HDF5_COMPILER_IS_EXECUTABLE)
+					# Get rid of our default list of names and just search for the name the user wants.
+					set(_HDF5_${lang}_COMPILER_NAMES ${HDF5_${lang}_COMPILER})
+					set(HDF5_${lang}_COMPILER "HDF5_${lang}_COMPILER-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
+					# If the user specifies a compiler, we don't want to try to search libraries either.
+					set(try_libs FALSE)
+				endif()
+			else()
+				set(try_libs TRUE)
+			endif()
+
+			find_program(HDF5_${lang}_COMPILER
+				NAMES         ${_HDF5_${lang}_COMPILER_NAMES}
+				HINTS         ${_HDF5_BASE_DIR}
+				PATH_SUFFIXES bin)
+			mark_as_advanced(HDF5_${lang}_COMPILER)
+			interrogate_hdf5_compiler(${lang} ${try_libs} ON ${parallel_hdf5})
+			interrogate_hdf5_compiler(${lang} ${try_libs} OFF ${parallel_hdf5})
+			unset(_HDF5_${lang}_COMPILER_NAMES)
+			if(HDF5_${lang}_COMPILER)
+				list(APPEND _HDF5_COMPILERS "${HDF5_${lang}_COMPILER}")
+			else()
+				list(APPEND _HDF5_COMPILERS ${HDF5_${lang}_LIBRARIES})
+			endif()
+		endif()
+	endforeach()
+	unset(_HDF5_BASE_DIR)
+	set(HDF5_COMPILERS "${_HDF5_COMPILERS}" PARENT_SCOPE)
+endfunction()
+
 # End definitions, commence real work here.
 
 find_program(H5DIFF NAMES h5diff PATH_SUFFIXES bin DOC "HDF5 file diff tool.")
@@ -341,43 +376,17 @@ mark_as_advanced(H5DIFF)
 get_filename_component(_HDF5_BASE_DIR "${H5DIFF}" PATH)
 get_filename_component(_HDF5_BASE_DIR "${_HDF5_BASE_DIR}" PATH)
 
-
-# This loop finds the compilers and sends them off for interrogation.
-unset(_HDF5_COMPILERS)
-foreach (lang C CXX Fortran)
-	if (CMAKE_${lang}_COMPILER_WORKS)
-		# If the user supplies a compiler *name* instead of an absolute path, assume that we need to find THAT compiler.
-		if (HDF5_${lang}_COMPILER)
-			is_file_executable(HDF5_${lang}_COMPILER HDF5_COMPILER_IS_EXECUTABLE)
-			if (NOT HDF5_COMPILER_IS_EXECUTABLE)
-				# Get rid of our default list of names and just search for the name the user wants.
-				set(_HDF5_${lang}_COMPILER_NAMES ${HDF5_${lang}_COMPILER})
-				set(HDF5_${lang}_COMPILER "HDF5_${lang}_COMPILER-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
-				# If the user specifies a compiler, we don't want to try to search libraries either.
-				set(try_libs FALSE)
-			endif()
-		else()
-			set(try_libs TRUE)
-		endif()
-
-		find_program(HDF5_${lang}_COMPILER
-			NAMES         ${_HDF5_${lang}_COMPILER_NAMES}
-			HINTS         ${_HDF5_BASE_DIR}
-			PATH_SUFFIXES bin)
-		mark_as_advanced(HDF5_${lang}_COMPILER)
-		interrogate_hdf5_compiler(${lang} ${try_libs} ON)
-		interrogate_hdf5_compiler(${lang} ${try_libs} OFF)
-		unset(_HDF5_${lang}_COMPILER_NAMES)
-		if(HDF5_${lang}_COMPILER)
-			list(APPEND _HDF5_COMPILERS "${HDF5_${lang}_COMPILER}")
-		else()
-			list(APPEND _HDF5_COMPILERS ${HDF5_${lang}_LIBRARIES})
-		endif()
+if( "${HDF5_PARALLEL}" STREQUAL "PAR" )
+	hdf5_try_find(TRUE)
+elseif( "${HDF5_PARALLEL}" STREQUAL "SEQ" )
+	hdf5_try_find(FALSE)
+else()
+	hdf5_try_find(FALSE)
+	if( NOT "${HDF5_COMPILERS}" )
+		hdf5_try_find(TRUE)
 	endif()
-endforeach()
-unset(_HDF5_BASE_DIR)
+endif()
 
-
-find_package_handle_standard_args(HDF5 DEFAULT_MSG _HDF5_COMPILERS)
+find_package_handle_standard_args(HDF5 DEFAULT_MSG HDF5_COMPILERS)
 # unset these vars to cleanup namespace
 unset(_HDF5_COMPILERS)

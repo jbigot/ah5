@@ -32,11 +32,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include(AppendProperty)
 include(FortranCInterface)
-find_package(HDF5)
-if( NOT "${HDF5_FOUND}" )
-	set(HDF5_PARALLEL ON)
-	find_package(HDF5 REQUIRED)
-endif()
+find_package(HDF5 REQUIRED)
 find_package(OMP)
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for async HDF5" ON)
