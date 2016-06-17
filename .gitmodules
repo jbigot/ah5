@@ -1,4 +1,4 @@
-[submodule "doc/wiki"]
+[submodule "bpp"]
 	path = vendor/bpp
 	url = https://gitlab.maisondelasimulation.fr/jbigot/bpp.git
 	branch = master
