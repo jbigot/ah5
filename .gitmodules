@@ -1,4 +1,4 @@
 [submodule "doc/wiki"]
 	path = vendor/bpp
-	url = https://github.com/jbigot/bpp.git
+	url = https://gitlab.maisondelasimulation.fr/jbigot/bpp.git
 	branch = master
