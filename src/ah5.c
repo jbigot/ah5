@@ -191,7 +191,7 @@ struct ah5 {
 
 #define SIGNAL_ERROR do {\
 	int errno_save = errno;\
-	LOG_ERROR(" ----- Fatal: exiting -----\n", __FILE__, __LINE__);\
+	LOG_ERROR(" ----- Fatal: exiting -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	exit(errno_save);\
@@ -200,7 +200,7 @@ struct ah5 {
 
 #define RETURN_ERROR do {\
 	int errno_save = errno;\
-	LOG_WARNING(" ----- Leaving function -----\n", __FILE__, __LINE__);\
+	LOG_WARNING(" ----- Leaving function -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	errno = errno_save;\
