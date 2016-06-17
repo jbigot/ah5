@@ -32,7 +32,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include(AppendProperty)
 include(FortranCInterface)
-find_package(HDF5 REQUIRED)
+find_package(HDF5)
+if( NOT "${HDF5_FOUND}" )
+	set(HDF5_PARALLEL ON)
+	find_package(HDF5 REQUIRED)
+endif()
 find_package(OMP)
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for async HDF5" ON)
@@ -55,6 +59,7 @@ target_link_libraries(ah5.shared ${HDF5_SHARED_C_LIBRARIES})
 append_property(TARGET ah5.static ah5.shared PROPERTY LINK_FLAGS " ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS}")
 set_property(TARGET ah5.static ah5.shared PROPERTY OUTPUT_NAME ah5)
 install(TARGETS ah5.static ah5.shared DESTINATION lib EXPORT Ah5Lib)
+set(AH5_EXPORT_TARGET ah5.static ah5.shared)
 
 install(FILES include/ah5.h DESTINATION include)
 
@@ -83,20 +88,13 @@ if ( ENABLE_FORTRAN )
 
 	set_property(TARGET ah5_f90.static ah5_f90.shared PROPERTY OUTPUT_NAME ah5_f90)
 	install(TARGETS ah5_f90.static ah5_f90.shared DESTINATION lib EXPORT Ah5Lib)
+	set(AH5_EXPORT_TARGET ${AH5_EXPORT_TARGET} ah5_f90.static ah5_f90.shared)
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modinclude" DESTINATION include FILES_MATCHING PATTERN "*.mod")
 endif()
 
 
 set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
 configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
-
-
-# in tree config
-
-set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/modinclude" CACHE STRING "Ah5 Include path")
-export(EXPORT Ah5Lib FILE "${CMAKE_CURRENT_BINARY_DIR}/Ah5Lib.cmake")
-configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
-export(PACKAGE Ah5)
 
 
 # installable config
@@ -109,3 +107,10 @@ install(FILES
 		"${WORK_DIR}/Ah5Config.cmake"
 	DESTINATION "lib/CMake/Ah5"
 )
+
+
+# in tree config
+
+set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/modinclude" CACHE STRING "Ah5 Include path")
+export(TARGETS ${AH5_EXPORT_TARGET} FILE "${CMAKE_CURRENT_BINARY_DIR}/Ah5Lib.cmake")
+configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)

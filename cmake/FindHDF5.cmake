@@ -2,20 +2,28 @@
 #
 # === Variables ===
 #
+# This module accepts the following optional variable:
+#   HDF5_PARALLEL                     Looks for the parallel version if set to
+#                                     ON, sequential otherwise
+#
 # This module will set the following variables per language in your project,
 # where <lang> is one of C, CXX, or Fortran:
 #   HDF5_<lang>_COMPILER              HDF5 Compiler wrapper for <lang>
 #   HDF5_<lang>_COMPILE_FLAGS         Compilation flags for HDF5 programs
 #   HDF5_<lang>_INCLUDE_PATH          Include path(s) for HDF5 header
 #   HDF5_<lang>_LINK_FLAGS            Linking flags for HDF5 programs
-#   HDF5_<lang>_LIBRARIES             All libraries to link HDF5 programs against
+#   HDF5_<lang>_LIBRARIES             All libraries to link HDF5 programs
+#                                     against
 #   HDF5_SHARED_<lang>_COMPILE_FLAGS  Compilation flags for HDF5 programs
 #   HDF5_SHARED_<lang>_INCLUDE_PATH   Include path(s) for HDF5 header
 #   HDF5_SHARED_<lang>_LINK_FLAGS     Linking flags for HDF5 programs
-#   HDF5_SHARED_<lang>_LIBRARIES      All libraries to link HDF5 programs against
+#   HDF5_SHARED_<lang>_LIBRARIES      All libraries to link HDF5 programs
+#                                     against
 # Additionally, FindHDF5 sets the following variables:
-#   HDF5_FOUND                  TRUE if FindHDF5 found HDF5 flags for all enabled languages
-#   H5DIFF                      the path to the HDF5 dataset comparison tool
+#   HDF5_FOUND                        TRUE if FindHDF5 found HDF5 flags for
+#                                     all enabled languages
+#   H5DIFF                            the path to the HDF5 dataset comparison
+#                                     tool
 #
 # === Usage ===
 #
@@ -37,7 +45,7 @@
 # regardless of whether a compiler was found.
 
 #=============================================================================
-# Copyright 2013-2014 CEA, Julien Bigot <julien.bigot@cea.fr>
+# Copyright 2013-2016 CEA, Julien Bigot <julien.bigot@cea.fr>
 # Copyright 2001-2011 Kitware, Inc.
 # Copyright 2010-2011 Todd Gamblin tgamblin@llnl.gov
 # Copyright 2009 Kitware, Inc.
@@ -82,10 +90,16 @@ include(GetPrerequisites)
 # your favorite HDF5_<lang>_COMPILER explicitly and this stuff will be ignored.
 
 # HDF5 compiler names
-set(_HDF5_C_COMPILER_NAMES         h5cc    h5pcc)
-set(_HDF5_CXX_COMPILER_NAMES       h5c++   h5pc++)
-set(_HDF5_Fortran_COMPILER_NAMES   h5fc    h5pfc)
-
+if("${HDF5_PARALLEL}")
+	find_package(MPI)
+	set(_HDF5_C_COMPILER_NAMES         h5pcc)
+	set(_HDF5_CXX_COMPILER_NAMES       h5pc++)
+	set(_HDF5_Fortran_COMPILER_NAMES   h5pfc)
+else()
+	set(_HDF5_C_COMPILER_NAMES         h5cc)
+	set(_HDF5_CXX_COMPILER_NAMES       h5c++)
+	set(_HDF5_Fortran_COMPILER_NAMES   h5fc)
+endif()
 
 # interrogate_hdf5_compiler(lang try_libs shared_hdf5)
 #
@@ -292,6 +306,12 @@ function (interrogate_hdf5_compiler lang try_libs shared_hdf5)
 			set(H5SHARED _SHARED)
 		endif()
 		# If we found HDF5, set up all of the appropriate cache entries
+		if ("${HDF5_PARALLEL}")
+			foreach(WORKVAR COMPILE_FLAGS INCLUDE_PATH LINK_FLAGS LIBRARIES)
+				set(HDF5_${WORKVAR}_WORK "${HDF5_${WORKVAR}_WORK} ${MPI_${lang}_LINK_FLAGS}")
+			endforeach()
+			unset(WORKVAR)
+		endif()
 		set(HDF5${H5SHARED}_${lang}_COMPILE_FLAGS ${HDF5_COMPILE_FLAGS_WORK} CACHE STRING "${H5SHARED} HDF5 ${lang} compilation flags"         FORCE)
 		set(HDF5${H5SHARED}_${lang}_INCLUDE_PATH  ${HDF5_INCLUDE_PATH_WORK}  CACHE STRING "${H5SHARED} HDF5 ${lang} include path"              FORCE)
 		set(HDF5${H5SHARED}_${lang}_LINK_FLAGS    ${HDF5_LINK_FLAGS_WORK}    CACHE STRING "${H5SHARED} HDF5 ${lang} linking flags"             FORCE)
