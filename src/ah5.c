@@ -26,7 +26,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#ifdef ENABLE_OPENMP
 #include <omp.h>
+#endif
 #include <pthread.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -370,7 +372,7 @@ static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t
 		}
 	} else {
 		if ( parallelism ) {
-			#pragma omp parallel for
+			#pragma omp for
 			for ( ii = lbounds[0]; ii<ubounds[0]; ++ii ) {
 				slicecpy(
 						((char*)dest)+dst_block_size*(ii-lbounds[0])*H5Tget_size(type),

@@ -36,6 +36,7 @@ find_package(HDF5 REQUIRED)
 find_package(OMP)
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for async HDF5" ON)
+option(ENABLE_OPENMP  "Enables support for parallel copy with OpenMP" ON)
 
 file(READ VERSION Ah5_VERSION)
 
@@ -52,7 +53,8 @@ target_link_libraries(ah5.static ${HDF5_C_LIBRARIES})
 add_library(ah5.shared SHARED ${SRC_Ah5})
 target_link_libraries(ah5.shared ${HDF5_SHARED_C_LIBRARIES})
 
-append_property(TARGET ah5.static ah5.shared PROPERTY LINK_FLAGS " ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS}")
+append_property(TARGET ah5.static ah5.shared PROPERTY LINK_FLAGS " ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS} ")
+set(Ah5_LINK_FLAGS " ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS} ")
 set_property(TARGET ah5.static ah5.shared PROPERTY OUTPUT_NAME ah5)
 install(TARGETS ah5.static ah5.shared DESTINATION lib EXPORT Ah5Lib)
 set(AH5_EXPORT_TARGET ah5.static ah5.shared)
@@ -82,6 +84,8 @@ if ( ENABLE_FORTRAN )
 	append_property(TARGET ah5_f90.shared PROPERTY COMPILE_FLAGS " ${HDF5_SHARED_Fortran_COMPILE_FLAGS} ")
 	target_link_libraries(ah5_f90.shared ah5.shared ${HDF5_SHARED_Fortran_LIBRARIES} ${HDF5_SHARED_C_LIBRARIES})
 
+	append_property(TARGET ah5_f90.static ah5_f90.shared PROPERTY LINK_FLAGS " ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS} ${HDF5_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS} ")
+	set(Ah5_LINK_FLAGS " ${Ah5_LINK_FLAGS} ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS} ${HDF5_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS} ")
 	set_property(TARGET ah5_f90.static ah5_f90.shared PROPERTY OUTPUT_NAME ah5_f90)
 	install(TARGETS ah5_f90.static ah5_f90.shared DESTINATION lib EXPORT Ah5Lib)
 	set(AH5_EXPORT_TARGET ${AH5_EXPORT_TARGET} ah5_f90.static ah5_f90.shared)
@@ -107,6 +111,8 @@ install(FILES
 
 # in tree config
 
-set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/modinclude" CACHE STRING "Ah5 Include path")
+set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/modinclude" CACHE STRING "Ah5 Include path" FORCE)
+set(Ah5_LINK_FLAGS   "${Ah5_LINK_FLAGS}" CACHE STRING "Ah5 link flags" FORCE)
 export(TARGETS ${AH5_EXPORT_TARGET} FILE "${CMAKE_CURRENT_BINARY_DIR}/Ah5Lib.cmake")
 configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
+include("${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake")

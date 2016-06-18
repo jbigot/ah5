@@ -23,4 +23,5 @@
 ################################################################################
 
 set(Ah5_INCLUDE_PATH @Ah5_INCLUDE_PATH@)
+set(Ah5_LINK_FLAGS @Ah5_LINK_FLAGS@)
 include("${CMAKE_CURRENT_LIST_DIR}/Ah5Lib.cmake")
