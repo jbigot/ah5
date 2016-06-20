@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
-#ifdef ENABLE_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 #include <pthread.h>
