@@ -93,6 +93,11 @@ if ( ENABLE_FORTRAN )
 endif()
 
 
+if("${DO_TEST}")
+enable_testing()
+add_subdirectory(tests)
+endif()
+
 set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
 configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
 
@@ -115,4 +120,6 @@ set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_CURRENT_BINARY_DIR}" "${CMA
 set(Ah5_LINK_FLAGS   "${Ah5_LINK_FLAGS}" CACHE STRING "Ah5 link flags" FORCE)
 export(TARGETS ${AH5_EXPORT_TARGET} FILE "${CMAKE_CURRENT_BINARY_DIR}/Ah5Lib.cmake")
 configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
+if(NOT POLICY CMP0024)
 include("${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake")
+endif()
