@@ -37,6 +37,7 @@ find_package(OMP)
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for async HDF5" ON)
 option(ENABLE_OPENMP  "Enables support for parallel copy with OpenMP" ON)
+option(ENABLE_TESTS   "Enables compilation of tests" OFF)
 
 file(READ VERSION Ah5_VERSION)
 
@@ -92,12 +93,6 @@ if ( ENABLE_FORTRAN )
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modinclude" DESTINATION include FILES_MATCHING PATTERN "*.mod")
 endif()
 
-
-if("${DO_TEST}")
-enable_testing()
-add_subdirectory(tests)
-endif()
-
 set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
 configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
 
@@ -122,4 +117,12 @@ export(TARGETS ${AH5_EXPORT_TARGET} FILE "${CMAKE_CURRENT_BINARY_DIR}/Ah5Lib.cma
 configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
 if(NOT POLICY CMP0024)
 include("${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake")
+endif()
+
+
+# tests
+
+if("${ENABLE_TESTS}")
+	enable_testing()
+	add_subdirectory(tests)
 endif()
