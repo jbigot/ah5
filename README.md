@@ -3,16 +3,6 @@
 Ah5 (Asynchronous HDF5) is a library enabling the use of a dedicated thread to
 write HDF5 files in an asynchronous fashion.
 
-## Dependancies
-
-To use Ah5, you need:
-* HDF5
-* OpenMP (Optional)
-
-In addition, to compile Ah5, you need:
-* cmake, version 3.0 minimum
-* BPP (packed in Ah5)
-
 ## Getting the source
 
 ### Getting a release
@@ -39,6 +29,16 @@ If you have already cloned Ah5 without the submodules, you can get them with
 $ git submodule init
 $ git submodule update
 ```
+
+## Dependancies
+
+To use Ah5, you need:
+* HDF5
+* OpenMP (Optional)
+
+In addition, to compile Ah5, you need:
+* cmake, version 3.0 minimum
+* BPP (packed in Ah5)
 
 ## Usage
 
