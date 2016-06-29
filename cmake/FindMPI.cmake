@@ -80,7 +80,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 2.8)
 
 # Protect against multiple inclusion, which would fail when already imported targets are added once more.
 if(NOT TARGET mpi)
