@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
-cmake_minimum_required(2.8)
+cmake_minimum_required(VERSION 2.8)
 
 include(CheckCCompilerFlag)
 function(add_compiler_flags TARGET VISIBILITY FLAGS)
