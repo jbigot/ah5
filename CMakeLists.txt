@@ -96,7 +96,7 @@ append_property(TARGET ah5.static PROPERTY LINK_FLAGS " ${Ah5_STATIC_LINK_FLAGS}
 install(TARGETS ah5.static EXPORT Ah5_export
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
-	INCLUDES DESTINATION include
+# 	INCLUDES DESTINATION include
 )
 
 #C shared version
@@ -115,8 +115,9 @@ append_property(TARGET ah5.shared PROPERTY COMPILE_FLAGS " ${Ah5_SHARED_COMPILE_
 string(REPLACE ";" " " Ah5_SHARED_LINK_FLAGS "${HDF5_SHARED_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS}")
 append_property(TARGET ah5.shared PROPERTY LINK_FLAGS " ${Ah5_SHARED_LINK_FLAGS}")
 install(TARGETS ah5.shared EXPORT Ah5_export
-	LIBRARY DESTINATION lib ARCHIVE DESTINATION lib
-	INCLUDES DESTINATION include
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+# 	INCLUDES DESTINATION include
 )
 install(DIRECTORY include/ DESTINATION include)
 
@@ -151,8 +152,7 @@ if("${ENABLE_FORTRAN}")
 	install(TARGETS ah5_f90.static EXPORT Ah5_export
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
-		INCLUDES DESTINATION
-			"lib/Ah5-${Ah5_VERSION}/finclude"
+# 		INCLUDES DESTINATION "lib/Ah5-${Ah5_VERSION}/finclude"
 	)
 	
 	#Fortran shared version
@@ -178,8 +178,7 @@ if("${ENABLE_FORTRAN}")
 	install(TARGETS ah5_f90.shared EXPORT Ah5_export
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
-		INCLUDES DESTINATION
-			"lib/Ah5-${Ah5_VERSION}/finclude"
+# 		INCLUDES DESTINATION "lib/Ah5-${Ah5_VERSION}/finclude"
 	)
 endif()
 
