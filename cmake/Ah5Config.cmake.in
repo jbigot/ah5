@@ -23,5 +23,12 @@
 ################################################################################
 
 set(Ah5_INCLUDE_PATH @Ah5_INCLUDE_PATH@)
-set(Ah5_LINK_FLAGS @Ah5_LINK_FLAGS@)
-include("${CMAKE_CURRENT_LIST_DIR}/Ah5Lib.cmake")
+set(Ah5_STATIC_LINK_FLAGS            "@Ah5_STATIC_LINK_FLAGS@")
+set(Ah5_STATIC_COMPILE_FLAGS         "@Ah5_STATIC_COMPILE_FLAGS@")
+set(Ah5_SHARED_LINK_FLAGS            "@Ah5_SHARED_LINK_FLAGS@")
+set(Ah5_SHARED_COMPILE_FLAGS         "@Ah5_SHARED_COMPILE_FLAGS@")
+set(Ah5_Fortran_STATIC_LINK_FLAGS    "@Ah5_Fortran_STATIC_LINK_FLAGS@")
+set(Ah5_Fortran_STATIC_COMPILE_FLAGS "@Ah5_Fortran_STATIC_COMPILE_FLAGS@")
+set(Ah5_Fortran_SHARED_LINK_FLAGS    "@Ah5_Fortran_SHARED_LINK_FLAGS@")
+set(Ah5_Fortran_SHARED_COMPILE_FLAGS "@Ah5_Fortran_SHARED_COMPILE_FLAGS@")
+include("${CMAKE_CURRENT_LIST_DIR}/Ah5_export.cmake")

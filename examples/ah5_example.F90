@@ -22,7 +22,7 @@
 ! THE SOFTWARE.
 !*******************************************************************************
 
-program test_ah5
+program ah5_example
 
 use ah5
 
@@ -101,4 +101,4 @@ subroutine data_compute(data_in, data_out)
 
 endsubroutine data_compute
 
-endprogram test_ah5
+endprogram ah5_example

@@ -1,3 +1,4 @@
-- [ ] Add doxygen generation to CMakeLists.txt
-- [ ] provide examples
-- [ ] write a doxygen main page
+- Add doxygen generation to CMakeLists.txt
+- A max memory size option
+- Add paraconf support
+- Add memmap to local FS support

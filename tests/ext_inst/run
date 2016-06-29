@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+
+TSTSRC_DIR="$(dirname "$(readlink -f "$0")")"
+Ah5SRC_DIR="$(dirname "$(dirname "${TSTSRC_DIR}")")"
+
+TMP_DIR="$(mktemp -t -d ah5_XXXXXXXXXX_install)"
+trap "rm -rf '${TMP_DIR}'" EXIT
+
+mkdir "${TMP_DIR}/ah5build"
+cd "${TMP_DIR}/ah5build"
+export Ah5_DIR="${TMP_DIR}/ah5inst"
+cmake "-DCMAKE_INSTALL_PREFIX=${Ah5_DIR}" "${Ah5SRC_DIR}"
+make -j install
+
+mkdir "${TMP_DIR}/tstbuild"
+cd "${TMP_DIR}/tstbuild"
+export TST_DIR="${TMP_DIR}/tstinst"
+cmake "-DCMAKE_INSTALL_PREFIX=${TST_DIR}" "${TSTSRC_DIR}"
+make
+make test
