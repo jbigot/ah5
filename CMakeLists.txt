@@ -23,7 +23,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)
-project(Ah5 LANGUAGES C Fortran)
+project(Ah5 C Fortran)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 if(POLICY CMP0063)
