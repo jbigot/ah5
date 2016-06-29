@@ -22,10 +22,6 @@
 # THE SOFTWARE.
 ################################################################################
 
-# compatibility macro for cmake pre 2.8.6
-cmake_policy(PUSH)
-cmake_policy(VERSION 3.5)
-
 function(APPEND_PROPERTY TYPE)
 	set(APPEND_PROPERTY_TARGETS)
 	set(APPEND_PROPERTY_PROPNAME)
@@ -46,6 +42,3 @@ function(APPEND_PROPERTY TYPE)
 		set_property("${TYPE}" "${TARGET}" PROPERTY "${APPEND_PROPERTY_PROPNAME}" "${APPEND_PROPERTY_PREVIOUS_VALUE}${APPEND_PROPERTY_VALUES}")
 	endforeach()
 endfunction()
-
-cmake_policy(POP)
-
