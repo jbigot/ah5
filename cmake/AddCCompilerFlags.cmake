@@ -27,13 +27,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
+cmake_minimum_required(2.8)
+
 include(CheckCCompilerFlag)
 function(add_compiler_flags TARGET VISIBILITY FLAGS)
+	get_property(TARGET_COMPILE_FLAGS TARGET "${TARGET}" PROPERTY COMPILE_FLAGS)
 	foreach(FLAG "${FLAGS}" ${ARGN})
 		set(FLAG_WORKS)
 		check_c_compiler_flag("${FLAG}" FLAG_WORKS)
 		if("${FLAG_WORKS}")
-			target_compile_options("${TARGET}" "${VISIBILITY}" "${FLAG}")
+			set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${FLAG}")
 		endif()
 	endforeach()
+	set_property(TARGET "${TARGET}" PROPERTY COMPILE_FLAGS "${TARGET_COMPILE_FLAGS}")
 endfunction()
