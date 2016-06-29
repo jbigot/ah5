@@ -32,7 +32,6 @@ endif()
 
 include(AddCCompilerFlags)
 include(AppendProperty)
-include(CMakePackageConfigHelpers)
 include(FortranCInterface)
 
 
@@ -190,10 +189,7 @@ endif()
 set(ConfigPackageLocation "lib/cmake/Ah5-${Ah5_VERSION}")
 set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_INSTALL_PREFIX}/include")
 configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
-write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake"
-	VERSION ${Ah5_VERSION}
-	COMPATIBILITY AnyNewerVersion
-)
+configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
 install(EXPORT Ah5_export DESTINATION ${ConfigPackageLocation})
 install(FILES
 		"${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake"

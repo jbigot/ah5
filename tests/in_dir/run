@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+TSTSRC_DIR="$(dirname "$(readlink -f "$0")")"
+Ah5SRC_DIR="$(dirname "$(dirname "${TSTSRC_DIR}")")"
+
+TMP_DIR="$(mktemp -t -d "ah5_$(basename "$0").XXXXXXXXXX")"
+trap "rm -rf '${TMP_DIR}'" EXIT
+
+mkdir "${TMP_DIR}/tstbuild"
+cd "${TMP_DIR}/tstbuild"
+cmake "${TSTSRC_DIR}"
+make -j
+make -j test
