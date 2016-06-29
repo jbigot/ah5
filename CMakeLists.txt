@@ -146,9 +146,6 @@ if("${ENABLE_FORTRAN}")
 	append_property(TARGET ah5_f90.static PROPERTY COMPILE_FLAGS " ${Ah5_Fortran_STATIC_COMPILE_FLAGS}")
 	string(REPLACE ";" " " Ah5_Fortran_STATIC_LINK_FLAGS "${HDF5_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS}")
 	append_property(TARGET ah5_f90.static PROPERTY LINK_FLAGS " ${Ah5_Fortran_STATIC_LINK_FLAGS}")
-	target_include_directories(ah5_f90.static INTERFACE
-		"$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/finclude>"
-	)
 	install(TARGETS ah5_f90.static EXPORT Ah5_export
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
@@ -172,9 +169,6 @@ if("${ENABLE_FORTRAN}")
 	append_property(TARGET ah5_f90.static PROPERTY COMPILE_FLAGS " ${Ah5_Fortran_SHARED_COMPILE_FLAGS}")
 	string(REPLACE ";" " " Ah5_Fortran_SHARED_LINK_FLAGS "${HDF5_SHARED_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS}")
 	append_property(TARGET ah5_f90.static PROPERTY LINK_FLAGS " ${Ah5_Fortran_SHARED_LINK_FLAGS}")
-	target_include_directories(ah5_f90.shared INTERFACE
-		"$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/finclude>"
-	)
 	install(TARGETS ah5_f90.shared EXPORT Ah5_export
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
