@@ -180,7 +180,7 @@ endif()
 # Installable config
 
 set(ConfigPackageLocation "lib/cmake/Ah5-${Ah5_VERSION}")
-set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_INSTALL_PREFIX}/include")
+set(Ah5_INCLUDE_PATH ${HDF5_C_INCLUDE_PATH} "${CMAKE_INSTALL_PREFIX}/include" "${CMAKE_INSTALL_PREFIX}/lib/Ah5-${Ah5_VERSION}/finclude")
 configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
 configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
 install(EXPORT Ah5_export DESTINATION ${ConfigPackageLocation})
@@ -195,7 +195,7 @@ install(FILES
 
 set(MAY_PARENT_SCOPE)
 if(NOT "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	set(MAY_PARENT_SCOPE PARENT_SCOPE "")
+	string(REPLACE MAY_ "" MAY_PARENT_SCOPE MAY_PARENT_SCOPE)
 endif()
 
 set(Ah5_INCLUDE_PATH
