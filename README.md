@@ -34,6 +34,7 @@ $ git submodule update
 
 To use Ah5, you need:
 * HDF5
+* pthread (Available by default on most if not all Unix-like systems)
 * OpenMP (Optional)
 
 In addition, to compile Ah5, you need:
