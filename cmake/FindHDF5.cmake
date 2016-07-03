@@ -136,7 +136,8 @@ function (interrogate_hdf5_compiler lang try_libs shared_hdf5 parallel_hdf5)
 			# If interrogation came back with something, extract our variable from the HDF5 command line
 			if (HDF5_CMDLINE)
 				# Extract compile flags from the compile command line.
-				string(REGEX MATCHALL "(^| )-[Df]([^\" ]+|\"[^\"]+\")" HDF5_ALL_COMPILE_FLAGS "${HDF5_CMDLINE}")
+				# It used to contain -f.* options, but this took some invalid options on the way => removed.
+				string(REGEX MATCHALL "(^| )-D([^\" ]+|\"[^\"]+\")" HDF5_ALL_COMPILE_FLAGS "${HDF5_CMDLINE}")
 				set(HDF5_COMPILE_FLAGS_WORK)
 
 				foreach(FLAG ${HDF5_ALL_COMPILE_FLAGS})
