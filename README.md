@@ -89,10 +89,6 @@ You can choose the installation path with the `CMAKE_INSTALL_PREFIX` parameter.
 
 ## Examples
 
-You can find two usage examples in the `test` directory. You can compile them
-with the following commands after having installed Ah5.
-```bash
-$ cd tests
-$ cmake .
-$ make
-```
+You can find an example of how to use ah5 in the `examples` directory. If you
+want more information about how to use ah5, either in place or installed, you
+can take a look at the `test` diectory.
