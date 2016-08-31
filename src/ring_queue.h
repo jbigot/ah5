@@ -25,7 +25,10 @@
 
 /** A producer-consumer circular buffer implementation of a queue
  * 
- * It uses an algorithm inspired by http://blog.labix.org/2010/12/23/efficient-algorithm-for-expanding-circular-buffers
+ * It uses an algorithm inspired by
+ * http://blog.labix.org/2010/12/23/efficient-algorithm-for-expanding-circular-buffers
+ * in order to limit the part of the buffer actually for cache friendlyness and
+ * such.
  */
 typedef struct ring_queue_s ring_queue_t;
 
@@ -47,7 +50,6 @@ int ring_queue_init( ring_queue_t *self, size_t buffer_size );
 int ring_queue_destroy( ring_queue_t *self );
 
 
-
 /** Reserves some space at the front of the queue to store data.
  * 
  * Blocks if there is not enough space to store the data until enough has been
@@ -60,7 +62,6 @@ int ring_queue_destroy( ring_queue_t *self );
 int ring_queue_push( ring_queue_t *self, size_t size, void **data );
 
 
-
 /** Retrieves data from the back of the queue to access it without removing it.
  * 
  * Blocks if there is no data in the queue until some has been produced.
@@ -70,7 +71,6 @@ int ring_queue_push( ring_queue_t *self, size_t size, void **data );
  * @returns 0 on success otherwise on error
  */
 int ring_queue_back( ring_queue_t *self, size_t *size, void **data );
-
 
 
 /** Pops the data at the back of the queue.

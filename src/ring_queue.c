@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include <stdint.h>
-#include <pthread.h>
 
 #include "status.h"
 
@@ -48,12 +47,6 @@ typedef struct ring_queue_elem_s
 
 struct ring_queue_s
 {
-	/** a mutex controling access to this instance */
-	pthread_mutex_t mutex;
-
-	/** a condition variable used to signal that the queue content has changed */
-	pthread_cond_t cond;
-	
 	/** Total size: [circ] + [exp] + [free] as specified by the user
 	 */
 	size_t total_size;
@@ -89,8 +82,6 @@ struct ring_queue_s
 int ring_queue_init( ring_queue_t* self, size_t buffer_size )
 {
 	if ( buffer_size <= sizeof(ring_queue_t) ) return 1;
-	if ( pthread_mutex_init(&(self->mutex), NULL) ) RETURN_ERROR;
-	if ( pthread_cond_init(&(self->cond), NULL) ) RETURN_ERROR;
 	/* try to align the buffer */
 	self->total_size = buffer_size - ((char*)self-(char*)(self->buffer));
 	return 0;
@@ -100,123 +91,97 @@ int ring_queue_init( ring_queue_t* self, size_t buffer_size )
 int ring_queue_destroy( ring_queue_t *self )
 {
 	if ( self->back ) return 1;
-
-	if ( pthread_cond_destroy(&(self->cond)) ) RETURN_ERROR;
-	if ( pthread_mutex_destroy(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
 
 
 int ring_queue_push( ring_queue_t *self, size_t size, void **data )
 {
-	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	
 	/* size of the data to insert in the buffer */
 	size_t insert_size = sizeof(ring_queue_elem_t)+size-1;
 	
 	/* cannot insert objects bigger than the max size */
 	if ( insert_size > self->total_size ) {
-		if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 		return 1;
 	}
 	
 	/* the location of the inserted item */
 	ring_queue_elem_t *elem = NULL;
-	while ( !elem ) {
-		/* case where the buffer is empty */
-		if ( !self->front ) {
-			elem = (ring_queue_elem_t*) self->buffer;
-			if ( self->circ_size < insert_size ) self->circ_size = insert_size;
-			if ( self->used_size < self->circ_size ) {
-				self->used_size = self->circ_size;
-			}
-			/* since we're the only element, we're to become the back in
-			   addition of the front */
-			self->back = elem; 
-		/* case where the buffer is expanding */
-		} else if ( self->circ_size != self->used_size ) {
-			/* there is enough space to insert our data */
-			if ( self->used_size+insert_size <= self->total_size ) {
-				elem = (ring_queue_elem_t*) 
-						(self->front->content + self->front->size);
-				self->used_size += insert_size;
-			}
-		/* case where everything is in the circular buffer and the remaining
-		   space is inbetween front and back */
-		} else if ( self->front < self->back ) {
-			/* case where there is enough space to insert the data here */
-			if ( (char*) self->front->content+self->front->size-1+insert_size 
-					<= (char*) self->back ) {
-				elem = (ring_queue_elem_t*)
-						(self->front->content + self->front->size);
-			/* case where there is enough space to insert our data  in [ext]:
-			   start expanding */
-			} else if ( self->used_size+insert_size <= self->total_size ) {
-				elem = (ring_queue_elem_t*) (self->buffer + self->used_size);
-				self->used_size += insert_size;
-			}
-		/* case where everything is in the circular buffer and the remaining
-		   space contains the buffer wrap */
-		} else {
-			/* case where there is enough space to insert the data at the end */
-			if ( (char*) self->front->content+self->front->size-1+insert_size
-					<= (char*)self->buffer+self->circ_size ) {
-				elem = (ring_queue_elem_t*)
-						(self->front->content + self->front->size);
-			/* case where there is enough space to insert the data at the start */
-			} else if ( (char*)self->buffer+insert_size <= (char*) self->back ) {
-				elem = (ring_queue_elem_t*) self->buffer;
-			/* case where there is enough space to insert our data  in [ext]:
-			   start expanding */
-			} else if ( self->used_size+insert_size <= self->total_size ) {
-				elem = (ring_queue_elem_t*) (self->buffer + self->used_size);
-				self->used_size += insert_size;
-			}
+	/* case where the buffer is empty */
+	if ( !self->front ) {
+		elem = (ring_queue_elem_t*) self->buffer;
+		if ( self->circ_size < insert_size ) self->circ_size = insert_size;
+		if ( self->used_size < self->circ_size ) {
+			self->used_size = self->circ_size;
 		}
-		/* if there wasn't enough space to insert our data, wait for something
-		   to change */
-		if ( !elem ) { 
-			if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
+		/* since we're the only element, we're to become the back in
+			addition of the front */
+		self->back = elem; 
+	/* case where the buffer is expanding */
+	} else if ( self->circ_size != self->used_size ) {
+		/* there is enough space to insert our data */
+		if ( self->used_size+insert_size <= self->total_size ) {
+			elem = (ring_queue_elem_t*) 
+					(self->front->content + self->front->size);
+			self->used_size += insert_size;
+		}
+	/* case where everything is in the circular buffer and the remaining
+		space is inbetween front and back */
+	} else if ( self->front < self->back ) {
+		/* case where there is enough space to insert the data here */
+		if ( (char*) self->front->content+self->front->size-1+insert_size 
+				<= (char*) self->back ) {
+			elem = (ring_queue_elem_t*)
+					(self->front->content + self->front->size);
+		/* case where there is enough space to insert our data  in [ext]:
+			start expanding */
+		} else if ( self->used_size+insert_size <= self->total_size ) {
+			elem = (ring_queue_elem_t*) (self->buffer + self->used_size);
+			self->used_size += insert_size;
+		}
+	/* case where everything is in the circular buffer and the remaining
+		space contains the buffer wrap */
+	} else {
+		/* case where there is enough space to insert the data at the end */
+		if ( (char*) self->front->content+self->front->size-1+insert_size
+				<= (char*)self->buffer+self->circ_size ) {
+			elem = (ring_queue_elem_t*)
+					(self->front->content + self->front->size);
+		/* case where there is enough space to insert the data at the start */
+		} else if ( (char*)self->buffer+insert_size <= (char*) self->back ) {
+			elem = (ring_queue_elem_t*) self->buffer;
+		/* case where there is enough space to insert our data  in [ext]:
+			start expanding */
+		} else if ( self->used_size+insert_size <= self->total_size ) {
+			elem = (ring_queue_elem_t*) (self->buffer + self->used_size);
+			self->used_size += insert_size;
 		}
 	}
 	/* actually do the insertion */
-	elem->next = NULL;
-	elem->size = size;
-	*data = elem->content;
-	self->front->next = elem;
-	self->front = elem;
+	if ( elem ) {
+		elem->next = NULL;
+		elem->size = size;
+		*data = elem->content;
+		self->front->next = elem;
+		self->front = elem;
+	}
 	
-	// notify that the content of the queue changed
-	if ( pthread_cond_signal(&(self->cond)) ) RETURN_ERROR;
-	
-	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
 
 
 int ring_queue_back( ring_queue_t *self, size_t *size, void **data )
 {
-	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	
-	while ( !self->back ) {
-		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
-	}
-	
+	if ( !self->back ) return 1;
 	*size = self->back->size;
 	*data = self->back->content;
-	
-	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
 
 
 int ring_queue_pop( ring_queue_t *self )
 {
-	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	
-	while ( !self->back ) {
-		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
-	}
+	if ( !self->back ) return 1;
 	
 	self->back = self->back->next;
 	
@@ -228,10 +193,5 @@ int ring_queue_pop( ring_queue_t *self )
 	} else if ( (char*) self->back >= (char*)self->buffer + self->circ_size ) {
 		self->circ_size = self->used_size;
 	}
-	
-	// notify that the content of the queue changed
-	if ( pthread_cond_signal(&(self->cond)) ) RETURN_ERROR;
-	
-	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
