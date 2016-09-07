@@ -22,30 +22,69 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_STATUS_H__
-#define AH5_STATUS_H__
+#ifndef AH5_IMPL_H__
+#define AH5_IMPL_H__
 
-#include <errno.h>
-#include <stdio.h>
-
-
-// 	LOG_ERROR(" ----- Fatal: exiting -----\n");
-#define SIGNAL_ERROR do {\
-	int errno_save = errno;\
-	errno = errno_save;\
-	perror(NULL);\
-	exit(errno_save);\
-} while (0)
+#include "ah5.h"
 
 
-// 	LOG_WARNING(" ----- Leaving function -----\n");
-#define RETURN_ERROR do {\
-	int errno_save = errno;\
-	errno = errno_save;\
-	perror(NULL);\
-	errno = errno_save;\
-	return errno_save;\
-} while (0)
+/** Represents an HDF5-write call
+ */
+typedef struct data_write_s
+{
+	/** The data
+	 */
+	void *buf;
+
+	/** Number of dimensions
+	 */
+	unsigned rank;
+
+	/** Dimensions of the array
+	 */
+	hsize_t dims[AH5_MAX_RANK];
+
+	/** Lower bound of the part to write
+	 */
+	hsize_t lbounds[AH5_MAX_RANK];
+
+	/** Upper bound of the part to write
+	 */
+	hsize_t ubounds[AH5_MAX_RANK];
+
+	/** HDF5 type of the Data
+	 */
+	hid_t type;
+
+	/** Name of the Data
+	 */
+	char *name;
+
+} data_write_t;
+
+/** A node of a double-linked list of data_write_t
+ */
+typedef struct write_list_s
+{
+	/** The previous element in the list
+	 */
+	struct write_list_s *previous;
+	
+	/** The next element in the list
+	 */
+	struct write_list_s *next;
+	
+	/** Access to the list does not grant access to the content of the node.
+	 *  It only allows to lock a previously unlocked node or to unlock a node 
+	 *  that had been locked by oneself.
+	 */
+	int content_lock;
+	
+	/** The actual content of the node
+	 */
+	data_write_t content;
+	
+} write_list_t;
 
 
-#endif /* AH5_STATUS_H__ */
+#endif /* AH5_IMPL_H__ */

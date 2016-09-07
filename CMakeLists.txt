@@ -79,8 +79,7 @@ include_directories("include/" ${HDF5_Fortran_INCLUDE_PATH} ${HDF5_C_INCLUDE_PAT
 install(DIRECTORY "include/" DESTINATION include)
 
 #C static version
-add_library(ah5.static STATIC
-	src/ah5.c
+add_libr
 )
 add_compiler_flags(ah5.static PRIVATE -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
 set_property(TARGET ah5.static PROPERTY OUTPUT_NAME ah5)
@@ -100,8 +99,7 @@ install(TARGETS ah5.static EXPORT Ah5_export
 )
 
 #C shared version
-add_library(ah5.shared SHARED
-	src/ah5.c
+add_libr
 )
 add_compiler_flags(ah5.shared PRIVATE -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
 set_property(TARGET ah5.shared PROPERTY OUTPUT_NAME ah5)
