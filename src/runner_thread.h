@@ -22,42 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_COMMAND_QUEUE_DYNAMIC_H__
-#define AH5_COMMAND_QUEUE_DYNAMIC_H__
+#ifndef AH5_RUNNER_THREAD_H__
+#define AH5_RUNNER_THREAD_H__
 
-#include "command_queue.h"
+#include "ah5.h"
 
-typedef struct command_queue_dynamic_s
-{
-	command_queue_t queue;
+int runner_thread_wait( ah5_t self );
 
-	size_t content_sz;
+void *runner_thread_main( void *self_void );
 
-	void *content;
-	
-	size_t buffer_sz;
-
-} command_queue_dynamic_t;
-
-
-int cqd_push_open( command_queue_dynamic_t *self, char* file_name );
-
-
-int cqd_push_write( command_queue_dynamic_t *self, void* data, char* name,
-		hid_t type, int rank, hsize_t* dims, hsize_t* lbounds,
-		hsize_t* ubounds );
-
-
-int cqd_push_close( command_queue_dynamic_t *self );
-
-
-int cqd_back( command_queue_dynamic_t *self, command_kind *kind,
-		void** command );
-
-
-int cqd_pop( command_queue_dynamic_t *self );
-
-
-int cqd_is_empty( command_queue_dynamic_t *self, int *empty );
-
-#endif /* AH5_COMMAND_QUEUE_DYNAMIC_H__ */
+#endif // AH5_RUNNER_THREAD_H__

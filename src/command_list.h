@@ -22,10 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_IMPL_H__
-#define AH5_IMPL_H__
+#ifndef AH5_COMMAND_LIST_H__
+#define AH5_COMMAND_LIST_H__
 
-#include "ah5.h"
+#include "ah5_impl.h"
 
 
 /** Represents an HDF5-write call
@@ -62,9 +62,10 @@ typedef struct data_write_s
 
 } data_write_t;
 
+
 /** A node of a double-linked list of data_write_t
  */
-typedef struct write_list_s
+struct write_list_s
 {
 	/** The previous element in the list
 	 */
@@ -84,7 +85,10 @@ typedef struct write_list_s
 	 */
 	data_write_t content;
 	
-} write_list_t;
+};
 
+void wl_insert_before( write_list_t *list, write_list_t *new_node);
 
-#endif /* AH5_IMPL_H__ */
+write_list_t *wl_remove( write_list_t *list);
+
+#endif /* AH5_COMMAND_LIST_H__ */

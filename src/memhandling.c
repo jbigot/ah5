@@ -22,23 +22,55 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <assert.h>
+#include <malloc.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#include "ah5_impl.h"
+#include "logging.h"
+
+#include "memhandling.h"
 
 
-/** Maximum number of thread supported in the multiple thread copy
- *
- * \todo automatically detect the actual max number of thread or dynamically
- * detect it so as not to crash on MIC for example
+#ifndef NO_MALLOC_USABLE
+#define MALL_SZ(BUF, ALLSZ) \
+        malloc_usable_size(BUF);
+#else
+        ALLSZ
+#endif
+
+
+static int freebuffer( ah5_t self )
+{
+	free(self->data_buf.content);
+	self->data_buf.max_size = 0;
+	return 0;
+}
+
+
+/** Grows the memory buffer similarly to realloc, but disards the currently
+ * held data.
+ * 
+ * @param self a pointer to the instance state
+ * @param size the requested size for the buffer
+ * @returns 0 on success, non-null on error
  */
-#define MAX_NB_THREAD 32
+int growbuffer(ah5_t self, size_t size)
+{
+	if ( size > self->data_buf.max_size ) {
+		LOG_DEBUG("Growing buffer size");
+		freebuffer(self);
+		self->data_buf.content = malloc(size);
+		self->data_buf.max_size = MALL_SZ(self->data_buf.content, size);
+	}
+	return 0;
+}
 
 
-
-static void* memcpy_omp( void* dest, void* src, size_t size )
+void* memcpy_omp( void* dest, void* src, size_t size )
 {
 #ifdef _OPENMP
 	size_t thread_disp[MAX_NB_THREAD+1];
@@ -71,8 +103,7 @@ static void* memcpy_omp( void* dest, void* src, size_t size )
 }
 
 
-
-static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
+void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
 		hsize_t* lbounds, hsize_t* ubounds, int parallelism )
 {
 	size_t ii, src_block_size, dst_block_size;

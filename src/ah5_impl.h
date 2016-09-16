@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#include "ah5.h"
+
 
 typedef struct write_list_s write_list_t;
 
@@ -83,9 +85,9 @@ struct ah5_s {
 	 */
 	pthread_t thread;
 
-	/** the thread executing the command list
+	/** Whether to stop the thread executing the command list
 	 */
-	int thread;
+	int thread_stop;
 
 	/** the opened file commands relate to
 	 */
@@ -107,7 +109,7 @@ struct ah5_s {
 
 		/** the verbosity level
 		 */
-		int verbosity;
+		ah5_verbosity_t verbosity;
 		
 	} logging;
 

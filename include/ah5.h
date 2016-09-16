@@ -36,11 +36,11 @@
 /** Verbosity levels supported by AH5
  */
 typedef enum {
-	AH5_VERBOSITY_ERROR=0, ///< only print a message on error
-	AH5_VERBOSITY_WARNING, ///< print a message on error or for warnings
-	AH5_VERBOSITY_STATUS, ///< print messages to follow even normal operation
+	AH5_VERB_ERROR=0, ///< only print a message on error
+	AH5_VERB_WARNING, ///< print a message on error or for warnings
+	AH5_VERB_STATUS, ///< print messages to follow even normal operation
 	/// print everything, equal to VERBOSITY_STATUS for non-debug builds of Ah5
-	AH5_VERBOSITY_DEBUG
+	AH5_VERB_DEBUG
 } ah5_verbosity_t;
 
 /** The type of an asynchronous HDF5 (Ah5) writer instance.
@@ -80,6 +80,17 @@ int ah5_init_file( ah5_t* pself, const char *dirname, size_t max_size );
  */
 int ah5_init_mem( ah5_t* pself, void *buffer, size_t max_size );
 
+/** Initializes the asynchronous HDF5 writer instance with a memory buffering
+ *  strategy.
+ * 
+ * The buffer is allocated by Ah5 and reallocated using realloc as required.
+ * This is a synonym for ::ah5_init_mem( pself, NULL, 0 );
+ * 
+ * @param pself a pointer to the Ah5 instance
+ * @returns 0 on success, non-null on error
+ */
+int ah5_init( ah5_t* pself );
+
 /** Finalizes the asynchronous HDF5 writer instance
  * @param self the Ah5 instance
  * @returns 0 on success, non-null on error
@@ -93,19 +104,19 @@ int ah5_finalize( ah5_t self );
  */
 int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl );
 
-/** Sets the file where to log
- * @param self the Ah5 instance
- * @param log_file the file where to log
- * @returns 0 on success, non-null on error
- */
-int ah5_set_logfile( ah5_t self, FILE* log_file );
-
 /** Sets the FS name of the file where to log
  * @param self the Ah5 instance
  * @param log_file_name the FS name of the file where to log
  * @returns 0 on success, non-null on error
  */
-int ah5_set_logfile_name( ah5_t self, char* log_file_name );
+int ah5_set_logfile( ah5_t self, char* log_file_name );
+
+/** Sets the file where to log
+ * @param self the Ah5 instance
+ * @param log_file the file where to log
+ * @returns 0 on success, non-null on error
+ */
+int ah5_set_logfile_f( ah5_t self, FILE* log_file );
 
 /** Sets the descriptor of the file where to log
  * @param self the Ah5 instance

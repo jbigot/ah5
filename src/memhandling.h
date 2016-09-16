@@ -22,6 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+/** Maximum number of thread supported in the multiple thread copy
+ *
+ * \todo automatically detect the actual max number of thread or dynamically
+ * detect it so as not to crash on MIC for example
+ */
+#define MAX_NB_THREAD 32
+
+
 /** This function has the exact same prototype as memcpy and does the exact same
  * thing, except it does it in parallel
  * @param dest the destination of the copy
@@ -29,7 +37,7 @@
  * @param size the number of bytes to copy
  * @return a pointer to dest
  */
-static void* memcpy_omp( void* dest, void* src, size_t size );
+void* memcpy_omp( void* dest, void* src, size_t size );
 
 
 /** Copies a slice of a nD array (in fact a block) from src to dest.
@@ -43,6 +51,6 @@ static void* memcpy_omp( void* dest, void* src, size_t size );
  * @param parallelism whether to do the copy in parallel
  * @return dest
  */
-static void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
+void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
 		hsize_t* lbounds, hsize_t* ubounds, int parallelism );
 

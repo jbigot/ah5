@@ -25,12 +25,18 @@
 #ifndef AH5_LOGGING_H__
 #define AH5_LOGGING_H__
 
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <sys/time.h>
+
+#include "ah5.h"
 
 
 #define LOG_ERROR( ... ) do {\
-	if (self->log_verbosity >= VERBOSITY_ERROR) {\
-		FILE* out = self->log_file? self->log_file : stderr;\
+	if (self->logging.verbosity >= AH5_VERB_ERROR) {\
+		FILE* out = self->logging.file? self->logging.file : stderr;\
 		fprintf(out, "*** Error: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -39,9 +45,10 @@
 } while (0)
 
 
+
 #define LOG_WARNING( ... ) do {\
-	if (self->log_verbosity >= VERBOSITY_WARNING) {\
-		FILE* out = self->log_file? self->log_file : stderr;\
+	if (self->logging.verbosity >= AH5_VERB_WARNING) {\
+		FILE* out = self->logging.file? self->logging.file : stderr;\
 		fprintf(out, "*** Warning: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -51,8 +58,8 @@
 
 
 #define LOG_STATUS( ... ) do {\
-	if (self->log_verbosity >= VERBOSITY_STATUS) {\
-		FILE* out = self->log_file? self->log_file : stderr;\
+	if (self->logging.verbosity >= AH5_VERB_STATUS) {\
+		FILE* out = self->logging.file? self->logging.file : stderr;\
 		fprintf(out, "*** Status: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -63,8 +70,8 @@
 
 #ifndef NDEBUG
 #define LOG_DEBUG( ... ) do {\
-	if (self->log_verbosity >= VERBOSITY_DEBUG) {\
-		FILE* out = self->log_file? self->log_file : stderr;\
+	if (self->logging.verbosity >= AH5_VERB_DEBUG) {\
+		FILE* out = self->logging.file? self->logging.file : stderr;\
 		fprintf(out, "*** Log: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -75,27 +82,25 @@
 #define LOG_DEBUG( ... )
 #endif
 
-#include <errno.h>
-#include <stdio.h>
 
-
-// 	LOG_ERROR(" ----- Fatal: exiting -----\n");
 #define SIGNAL_ERROR do {\
 	int errno_save = errno;\
+	LOG_ERROR(" ----- Fatal: exiting -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	exit(errno_save);\
 } while (0)
 
 
-// 	LOG_WARNING(" ----- Leaving function -----\n");
 #define RETURN_ERROR do {\
 	int errno_save = errno;\
+	LOG_WARNING(" ----- Leaving function -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	errno = errno_save;\
 	return errno_save;\
 } while (0)
+
 
 /** Returns the number of microseconds elapsed since EPOCH
  * @returns the number of microseconds elapsed since EPOCH
