@@ -22,6 +22,8 @@
 ! THE SOFTWARE.
 !*******************************************************************************
 
+include 'Ah5.f90'
+
 program ah5_example
 
 use ah5
@@ -43,9 +45,9 @@ allocate(data_next(DATA_WIDTH,DATA_HEIGHT))
 do ii = 0, 100
   if ( mod(ii, 10) == 0 ) then
     write (fname, '("data.",I4.4,".h5")') ii
-    call ah5_start(ah5_inst, fname, err)
+    call ah5_open(ah5_inst, fname, err)
     call ah5_write(ah5_inst, data, "data", err)
-    call ah5_finish(ah5_inst, err)
+    call ah5_close(ah5_inst, err)
   endif
 
   call data_compute(data, data_next)
@@ -55,9 +57,9 @@ do ii = 0, 100
 enddo
 
 write (fname, '("data.",I4.4,".h5")') ii
-call ah5_start(ah5_inst, fname, err)
+call ah5_open(ah5_inst, fname, err)
 call ah5_write(ah5_inst, data, "data", err)
-call ah5_finish(ah5_inst, err)
+call ah5_close(ah5_inst, err)
 
 call ah5_finalize(ah5_inst, err);
 
