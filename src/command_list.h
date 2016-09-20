@@ -25,7 +25,12 @@
 #ifndef AH5_COMMAND_LIST_H__
 #define AH5_COMMAND_LIST_H__
 
-#include "ah5_impl.h"
+#include <hdf5.h>
+
+#include "command_list_fwd.h"
+
+
+#define AH5_MAX_RANK 7
 
 
 /** Represents an HDF5-write call
@@ -65,15 +70,15 @@ typedef struct data_write_s
 
 /** A node of a double-linked list of data_write_t
  */
-struct write_list_s
+struct command_list_s
 {
 	/** The previous element in the list
 	 */
-	struct write_list_s *previous;
+	struct command_list_s *previous;
 	
 	/** The next element in the list
 	 */
-	struct write_list_s *next;
+	struct command_list_s *next;
 	
 	/** Access to the list does not grant access to the content of the node.
 	 *  It only allows to lock a previously unlocked node or to unlock a node 
@@ -86,9 +91,5 @@ struct write_list_s
 	data_write_t content;
 	
 };
-
-void wl_insert_before( write_list_t *list, write_list_t *new_node);
-
-write_list_t *wl_remove( write_list_t *list);
 
 #endif /* AH5_COMMAND_LIST_H__ */

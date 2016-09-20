@@ -121,15 +121,12 @@ int ah5_finalize( ah5_t self )
 	
 	// cleanup resources
 	pthread_join( self->thread, NULL);
+	pthread_cond_destroy(&self->cond);
+	pthread_mutex_destroy(&self->mutex);
+	freebuffer(&self->data_buf);
 	if ( self->logging.closing_strategy == FILE_CLOSE ) {
 		fclose(self->logging.file);
 	}
-	pthread_mutex_destroy(&self->mutex);
-	pthread_cond_destroy(&self->cond);
-	freebuffer(&self->data_buf);
-	
-	/* free all memory */
-	free(self->data_buf.content);
 	free(self);
 	
 	LOG_STATUS("finalized Async HDF5 instance");
@@ -194,28 +191,19 @@ int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 	LOG_DEBUG("adding a write command to the list");
 	
 	/* increase the array containing all write commands */
-	write_list_t *command = malloc(sizeof(write_list_t));
-	if ( self->commands ) {
-		command->previous = self->commands->previous;
-		self->commands->previous->next = command;
-		command->next = self->commands;
-		self->commands->previous = command;
-	} else {
-		command->next = command;
-		command->previous = command;
-		self->commands = command;
-	}
+	self->commands = cl_insert_tail(self->commands);
+	data_write_t *command = &self->commands->previous->content;
 	
-	command->content.buf = data;
-	command->content.rank = rank;
+	command->buf = data;
+	command->rank = rank;
 	for ( int ii = 0; ii<rank; ++ii ) {
-		command->content.dims[ii] = dims[ii];
-		command->content.lbounds[ii] = lbounds[ii];
-		command->content.ubounds[ii] = ubounds[ii];
+		command->dims[ii] = dims[ii];
+		command->lbounds[ii] = lbounds[ii];
+		command->ubounds[ii] = ubounds[ii];
 	}
-	command->content.name = malloc(strlen(name)+1);
-	strcpy(command->content.name, name);
-	command->content.type = type;
+	command->name = malloc(strlen(name)+1);
+	strcpy(command->name, name);
+	command->type = type;
 	
 	LOG_DEBUG("added writing command for data %s of rank %u", name, (unsigned)rank);
 	return 0;

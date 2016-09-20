@@ -101,7 +101,7 @@ void* runner_thread_main( void* self_void )
 			if ( H5Pclose(plist_id) ) SIGNAL_ERROR;
 			if ( H5Sclose(space_id) ) SIGNAL_ERROR;
 			
-			self->commands = wl_remove(self->commands);
+			self->commands = cl_remove_head(self->commands);
 		}
 
 		LOG_DEBUG("async HDF5 closing file");

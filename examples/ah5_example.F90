@@ -37,19 +37,18 @@ real(8), pointer :: data(:,:), data_next(:,:), data_swap(:,:)
 integer :: ii, err
 character(15) :: fname
 
+call ah5_init(ah5_inst, err)
 allocate(data(DATA_WIDTH,DATA_HEIGHT))
 call data_init(data)
-call ah5_init(ah5_inst, err)
 allocate(data_next(DATA_WIDTH,DATA_HEIGHT))
 
-do ii = 0, 100
+do ii = 0, 99
   if ( mod(ii, 10) == 0 ) then
     write (fname, '("data.",I4.4,".h5")') ii
     call ah5_open(ah5_inst, fname, err)
     call ah5_write(ah5_inst, data, "data", err)
     call ah5_close(ah5_inst, err)
   endif
-
   call data_compute(data, data_next)
   data_swap => data
   data => data_next
@@ -74,8 +73,8 @@ subroutine data_init(data)
 
   integer :: xx, yy
 
-  do xx = 1, DATA_WIDTH
-    do yy = 1, DATA_HEIGHT
+  do yy = 1, DATA_HEIGHT
+    do xx = 1, DATA_WIDTH
       data(xx,yy) = sin(1.*(xx-1.)/DATA_WIDTH)*sin(1.*(yy-1.)/DATA_HEIGHT)
     enddo
   enddo
@@ -90,8 +89,8 @@ subroutine data_compute(data_in, data_out)
 
   integer :: xx, yy
 
-  do xx = 1, DATA_WIDTH
-    do yy = 1, DATA_HEIGHT
+  do yy = 1, DATA_HEIGHT
+    do xx = 1, DATA_WIDTH
       data_out(xx,yy) = &
           0.5 * data_in(xx, yy) &
           + 0.125 * data_in(mod(xx+DATA_WIDTH-2,DATA_WIDTH)+1, yy) &

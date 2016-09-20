@@ -84,6 +84,7 @@ int main(int argc, char** argv)
 		data = data_next;
 		data_next = data_swap;
 	}
+	
 	sprintf(fname, "data.%d.h5", ii);
 	ah5_open(ah5_inst, fname);
 	ah5_write(ah5_inst, data, "data", H5T_NATIVE_DOUBLE, 2, bounds, zsize, bounds );

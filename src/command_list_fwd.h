@@ -22,54 +22,25 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_IMPL_H__
-#define AH5_IMPL_H__
+#ifndef AH5_COMMAND_LIST_FWD_H__
+#define AH5_COMMAND_LIST_FWD_H__
 
-#include <stdio.h>
-#include <pthread.h>
-
-#include "ah5.h"
-#include "memhandling.h"
-#include "logging.h"
-#include "command_list_fwd.h"
-
-/** Status of the asynchronous HDF5 instance
+/** A node of a double-linked list of data_write_t
  */
-struct ah5_s {
+typedef struct command_list_s write_list_t;
 
-	/** a mutex controling access to this instance
-	 */
-	pthread_mutex_t mutex;
 
-	/** a condition variable used to signal that the instance content has changed
-	 */
-	pthread_cond_t cond;
+/** Inserts a new node in the list just before the one provided
+ * @param list the list to modify
+ * @return the new list with an additional node
+ */
+write_list_t *cl_insert_tail( write_list_t *list );
 
-	/// The data buffer
-	data_buf_t data_buf;
 
-	/** The actual command list or NULL if empty
-	 */
-	write_list_t* commands;
+/** Removes the first node from a list
+ * @param list the list from which to remove the first node
+ * @return the new list without this node
+ */
+write_list_t *cl_remove_head( write_list_t *list );
 
-	/** the thread executing the command list
-	 */
-	pthread_t thread;
-
-	/** Whether to stop the thread executing the command list
-	 */
-	int thread_stop;
-
-	/** the opened file commands relate to
-	 */
-	hid_t file;
-	
-	/** whether to use all core for copies
-	 */
-	int parallel_copy;
-
-	logging_t logging;
-
-};
-
-#endif /* AH5_IMPL_H__ */
+#endif /* AH5_COMMAND_LIST_FWD_H__ */

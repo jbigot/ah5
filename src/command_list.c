@@ -27,14 +27,31 @@
 #include "command_list.h"
 
 
-write_list_t * wl_remove(write_list_t* list)
+write_list_t * cl_remove_head( write_list_t* list )
 {
-  write_list_t *result = list->next;
-  if ( list->next == list ) result = NULL;
-  
-  list->previous->next = list->next;
-  list->next->previous = list->previous;
-  
-  free(list);
-  return result;
+	write_list_t *result = list->next;
+	if ( list->next == list ) result = NULL;
+
+	list->next->previous = list->previous;
+	list->next->previous->next = list->next;
+
+	free(list);
+	return result;
+}
+
+
+write_list_t *cl_insert_tail( write_list_t *list )
+{
+	write_list_t *new_node = malloc(sizeof(write_list_t));
+	if ( list ) {
+		new_node->previous = list->previous;
+		list->previous->next = new_node;
+		new_node->next = list;
+		list->previous = new_node;
+	} else {
+		new_node->next = new_node;
+		new_node->previous = new_node;
+		list = new_node;
+	}
+	return list;
 }

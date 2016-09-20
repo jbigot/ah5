@@ -31,6 +31,7 @@ cmake_policy(SET CMP0063 NEW)
 endif()
 
 include(AddCCompilerFlags)
+include(CMakePackageConfigHelpers)
 
 
 # Build options
@@ -41,9 +42,6 @@ option(ENABLE_FORTRAN
 option(ENABLE_OPENMP
 	"Enables support for parallel copy with OpenMP"
 	ON)
-option(ENABLE_TESTING
-	"Enable compilation of the (example) tests"
-	OFF)
 
 get_property(ENABLED_LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
 if("${ENABLE_FORTRAN}" AND NOT "${ENABLED_LANGUAGES}" MATCHES Fortran)
@@ -73,7 +71,6 @@ list(GET Ah5_VERSION_list 2 Ah5_VERSION_PATCH)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
-include_directories("include/" ${HDF5_Fortran_INCLUDE_PATH} ${HDF5_C_INCLUDE_PATH})
 install(DIRECTORY "include/" DESTINATION include)
 set(Ah5_SRC 
 	src/api.c
@@ -85,7 +82,7 @@ set(Ah5_SRC
 
 #C static version
 add_library(ah5.static STATIC ${Ah5_SRC})
-add_compiler_flags(ah5.static PRIVATE -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
+add_compiler_flags(ah5.static PRIVATE -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
 set_property(TARGET ah5.static PROPERTY OUTPUT_NAME ah5)
 set_property(TARGET ah5.static PROPERTY VERSION ${Ah5_VERSION})
 set_property(TARGET ah5.static PROPERTY SOVERSION ${Ah5_VERSION_MAJOR})
@@ -93,11 +90,16 @@ set_property(TARGET ah5.static PROPERTY Ah5_MAJOR_VERSION ${Ah5_VERSION_MAJOR})
 set_property(TARGET ah5.static APPEND PROPERTY COMPATIBLE_INTERFACE_STRING Ah5_MAJOR_VERSION)
 target_link_libraries(ah5.static PUBLIC ${HDF5_C_LIBRARIES} ${HDF5_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS})
 target_compile_options(ah5.static PUBLIC ${HDF5_C_COMPILE_FLAGS} ${OMP_C_COMPILE_FLAGS})
+target_include_directories(ah5.static PUBLIC
+		${HDF5_C_INCLUDE_PATH}
+		"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+		"$<INSTALL_INTERFACE:include>")
+target_compile_features(ah5.static PUBLIC c_variadic_macros)
 install(TARGETS ah5.static EXPORT Ah5_export ARCHIVE DESTINATION lib)
 
 #C shared version
 add_library(ah5.shared SHARED ${Ah5_SRC})
-add_compiler_flags(ah5.shared PRIVATE -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
+add_compiler_flags(ah5.shared PRIVATE -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
 set_property(TARGET ah5.shared PROPERTY OUTPUT_NAME ah5)
 set_property(TARGET ah5.shared PROPERTY VERSION ${Ah5_VERSION})
 set_property(TARGET ah5.shared PROPERTY SOVERSION ${Ah5_VERSION_MAJOR})
@@ -105,7 +107,12 @@ set_property(TARGET ah5.shared PROPERTY Ah5_MAJOR_VERSION ${Ah5_VERSION_MAJOR})
 set_property(TARGET ah5.shared APPEND PROPERTY COMPATIBLE_INTERFACE_STRING Ah5_MAJOR_VERSION)
 target_link_libraries(ah5.shared PUBLIC ${HDF5_SHARED_C_LIBRARIES} ${HDF5_SHARED_C_LINK_FLAGS} ${OMP_C_LINK_FLAGS})
 target_compile_options(ah5.shared PUBLIC ${HDF5_SHARED_C_COMPILE_FLAGS} ${OMP_C_COMPILE_FLAGS})
-install(TARGETS ah5.shared EXPORT Ah5_export LIBRARY DESTINATION lib)
+target_include_directories(ah5.shared PUBLIC
+		${HDF5_C_INCLUDE_PATH}
+		"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+		"$<INSTALL_INTERFACE:include>")
+target_compile_features(ah5.shared PUBLIC c_variadic_macros)
+install(TARGETS ah5.shared EXPORT Ah5_export LIBRARY DESTINATION lib )
 
 #Fortran version
 if("${ENABLE_FORTRAN}")
@@ -114,7 +121,7 @@ if("${ENABLE_FORTRAN}")
 	bpp_preprocess(SRC_Ah5_F90 src/ah5.F90.bpp)
 	set(GENINC "${CMAKE_CURRENT_BINARY_DIR}/geninc")
 	file(MAKE_DIRECTORY "${GENINC}")
-	add_custom_target(Ah5_f90_inc
+	add_custom_target(Ah5_f90_inc ALL
 			COMMAND "${CMAKE_COMMAND}" -E copy "${SRC_Ah5_F90}" "${GENINC}/Ah5.f90"
 			DEPENDS "${SRC_Ah5_F90}"
 			COMMENT "Renaming Fortran90 include file to 'Ah5.f90'"
@@ -124,42 +131,45 @@ if("${ENABLE_FORTRAN}")
 	#Fortran static version
 	add_library(ah5_f90.static INTERFACE)
 	add_dependencies(ah5_f90.static Ah5_f90_inc)
-	target_link_libraries(ah5_f90.static INTERFACE ah5.static ${HDF5_Fortran_LIBRARIES})
+	target_link_libraries(ah5_f90.static INTERFACE ah5.static ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS})
 	target_compile_options(ah5_f90.static INTERFACE ${HDF5_Fortran_COMPILE_FLAGS} ${OMP_Fortran_COMPILE_FLAGS})
-	string(REPLACE ";" " " Ah5f_T_LINK_FLAGS "${HDF5_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS}")
-# 	set_property(TARGET ah5_f90.static APPEND_STRING PROPERTY LINK_FLAGS " ${Ah5f_T_LINK_FLAGS}")
-	target_include_directories(ah5_f90.static INTERFACE 
-					"$<BUILD_INTERFACE:${GENINC}>" 
-					"$<INSTALL_INTERFACE:include>")
+	target_include_directories(ah5_f90.static INTERFACE
+				${HDF5_Fortran_INCLUDE_PATH}
+			"$<BUILD_INTERFACE:${GENINC}>" 
+			"$<INSTALL_INTERFACE:include>")
+	install(TARGETS ah5_f90.static EXPORT Ah5_export LIBRARY DESTINATION lib )
 	
 	#Fortran shared version
 	add_library(ah5_f90.shared INTERFACE)
 	add_dependencies(ah5_f90.shared Ah5_f90_inc)
-	target_link_libraries(ah5_f90.shared INTERFACE ah5.shared ${HDF5_SHARED_Fortran_LIBRARIES})
+	target_link_libraries(ah5_f90.shared INTERFACE ah5.shared ${HDF5_SHARED_Fortran_LIBRARIES} ${HDF5_SHARED_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS})
 	target_compile_options(ah5_f90.static INTERFACE ${HDF5_SHARED_Fortran_COMPILE_FLAGS} ${OMP_Fortran_COMPILE_FLAGS})
-	string(REPLACE ";" " " Ah5f_S_LINK_FLAGS "")
-# 	set_property(TARGET ah5_f90.static APPEND_STRING PROPERTY LINK_FLAGS ${HDF5_SHARED_Fortran_LINK_FLAGS} ${OMP_Fortran_LINK_FLAGS})
 	target_include_directories(ah5_f90.shared INTERFACE 
-					"$<BUILD_INTERFACE:${GENINC}>" 
-					"$<INSTALL_INTERFACE:include>")
+				${HDF5_Fortran_INCLUDE_PATH}
+			"$<BUILD_INTERFACE:${GENINC}>" 
+			"$<INSTALL_INTERFACE:include>")
+	install(TARGETS ah5_f90.shared EXPORT Ah5_export LIBRARY DESTINATION lib )
+	
 endif()
+
+
+# Test & examples
+
+enable_testing()
+add_subdirectory(examples)
+add_subdirectory(tests)
 
 
 # Installable config
 
 set(ConfigPackageLocation "lib/cmake/Ah5-${Ah5_VERSION}")
-configure_file(cmake/Ah5Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake" @ONLY)
-configure_file(cmake/Ah5ConfigVersion.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake" @ONLY)
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake"
+	VERSION ${Ah5_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
 install(EXPORT Ah5_export DESTINATION ${ConfigPackageLocation})
 install(FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/Ah5Config.cmake"
+		cmake/Ah5Config.cmake
 		"${CMAKE_CURRENT_BINARY_DIR}/Ah5ConfigVersion.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
-
-
-# Test examples
-
-enable_testing()
-add_subdirectory(examples)
-add_subdirectory(tests)

@@ -31,7 +31,24 @@
 
 #include <sys/time.h>
 
-#include "ah5.h"
+#include "logging_fwd.h"
+
+
+struct logging_s {
+	/** the file where to log
+		*/
+	FILE* file;
+	
+	enum {
+		FILE_CLOSE,
+		FILE_KEEP_OPEN
+	} closing_strategy;
+
+	/** the verbosity level
+		*/
+	ah5_verbosity_t verbosity;
+	
+};
 
 
 #define LOG_ERROR( ... ) do {\

@@ -22,54 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_IMPL_H__
-#define AH5_IMPL_H__
+#ifndef AH5_LOGGING_FWD_H__
+#define AH5_LOGGING_FWD_H__
 
-#include <stdio.h>
-#include <pthread.h>
+typedef struct logging_s logging_t;
 
-#include "ah5.h"
-#include "memhandling.h"
-#include "logging.h"
-#include "command_list_fwd.h"
-
-/** Status of the asynchronous HDF5 instance
- */
-struct ah5_s {
-
-	/** a mutex controling access to this instance
-	 */
-	pthread_mutex_t mutex;
-
-	/** a condition variable used to signal that the instance content has changed
-	 */
-	pthread_cond_t cond;
-
-	/// The data buffer
-	data_buf_t data_buf;
-
-	/** The actual command list or NULL if empty
-	 */
-	write_list_t* commands;
-
-	/** the thread executing the command list
-	 */
-	pthread_t thread;
-
-	/** Whether to stop the thread executing the command list
-	 */
-	int thread_stop;
-
-	/** the opened file commands relate to
-	 */
-	hid_t file;
-	
-	/** whether to use all core for copies
-	 */
-	int parallel_copy;
-
-	logging_t logging;
-
-};
-
-#endif /* AH5_IMPL_H__ */
+#endif /* AH5_LOGGING_FWD_H__ */

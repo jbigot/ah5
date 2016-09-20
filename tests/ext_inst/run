@@ -12,10 +12,13 @@ mkdir "${TMP_DIR}/ah5build"
 cd "${TMP_DIR}/ah5build"
 export Ah5_DIR="${TMP_DIR}/ah5inst"
 cmake "-DCMAKE_INSTALL_PREFIX=${Ah5_DIR}" "${Ah5SRC_DIR}"
-make -j install
+make install
 
 mkdir "${TMP_DIR}/tstbuild"
 cd "${TMP_DIR}/tstbuild"
 cmake "${TSTSRC_DIR}"
 make
-make test
+./ah5_c_shared
+./ah5_c_static
+./ah5_f_shared
+./ah5_f_static
