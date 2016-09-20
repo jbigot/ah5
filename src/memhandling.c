@@ -28,11 +28,20 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <sys/mman.h>
 
 #include "ah5_impl.h"
 #include "logging.h"
 
 #include "memhandling.h"
+
+
+/** Maximum number of thread supported in the multiple thread copy
+ *
+ * @todo automatically detect the actual max number of thread or dynamically
+ * detect it so as not to crash on MIC for example
+ */
+#define MAX_NB_THREAD 32
 
 
 #ifndef NO_MALLOC_USABLE
@@ -43,30 +52,24 @@
 #endif
 
 
-static int freebuffer( ah5_t self )
+void freebuffer( data_buf_t *buf )
 {
-	free(self->data_buf.content);
-	self->data_buf.max_size = 0;
-	return 0;
+	if ( buf->strategy & BUF_MALLOCED ) free(buf->content);
+	if ( buf->strategy & BUF_MMAPED ) munmap(buf->content, buf->max_size);
+	buf->max_size = 0;
+	buf->used_size = 0;
+	buf->strategy = BUF_BASE;
 }
 
 
-/** Grows the memory buffer similarly to realloc, but disards the currently
- * held data.
- * 
- * @param self a pointer to the instance state
- * @param size the requested size for the buffer
- * @returns 0 on success, non-null on error
- */
-int growbuffer(ah5_t self, size_t size)
+void growbuffer( data_buf_t *buf, size_t size )
 {
-	if ( size > self->data_buf.max_size ) {
-		LOG_DEBUG("Growing buffer size");
-		freebuffer(self);
-		self->data_buf.content = malloc(size);
-		self->data_buf.max_size = MALL_SZ(self->data_buf.content, size);
+	if ( size > buf->max_size && ( buf->strategy & BUF_DYNAMIC ) ) {
+// 		LOG_DEBUG("Growing buffer size");
+		freebuffer(buf);
+		buf->content = malloc(size);
+		buf->max_size = MALL_SZ(buf->content, size);
 	}
-	return 0;
 }
 
 

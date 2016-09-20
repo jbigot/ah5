@@ -22,70 +22,28 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef AH5_IMPL_H__
-#define AH5_IMPL_H__
+#ifndef AH5_MEMHANDLING_FWD_H__
+#define AH5_MEMHANDLING_FWD_H__
 
-#include <stdio.h>
-#include <pthread.h>
-
-#include "ah5.h"
-#include "memhandling.h"
-
-
-typedef struct write_list_s write_list_t;
-
-
-/** Status of the asynchronous HDF5 instance
+/** The various ways the memory buffer can be handled
  */
-struct ah5_s {
-
-	/** a mutex controling access to this instance
-	 */
-	pthread_mutex_t mutex;
-
-	/** a condition variable used to signal that the instance content has changed
-	 */
-	pthread_cond_t cond;
-
-	/// The data buffer
-	data_buf_t data_buf;
-
-	/** The actual command list or NULL if empty
-	 */
-	write_list_t* commands;
-
-	/** the thread executing the command list
-	 */
-	pthread_t thread;
-
-	/** Whether to stop the thread executing the command list
-	 */
-	int thread_stop;
-
-	/** the opened file commands relate to
-	 */
-	hid_t file;
+typedef enum
+{
+	/// the buffer is allocated to a fixed size
+	BUF_BASE=0,
 	
-	/** whether to use all core for copies
-	 */
-	int parallel_copy;
+	/// the buffer can be grown fit the data
+	BUF_DYNAMIC=1,
+	
+	/// the buffer has been mmap'ed by Ah5 and should be free'd
+	BUF_MMAPED=2,
+	
+	/// the buffer has been malloc'ed by Ah5 and should be munmap'ed
+	BUF_MALLOCED=4
+	
+} buffer_strategy_t;
 
-	struct {
-		/** the file where to log
-		 */
-		FILE* file;
-		
-		enum {
-			FILE_CLOSE,
-			FILE_KEEP_OPEN
-		} closing_strategy;
 
-		/** the verbosity level
-		 */
-		ah5_verbosity_t verbosity;
-		
-	} logging;
+typedef struct data_buf_s data_buf_t;
 
-};
-
-#endif /* AH5_IMPL_H__ */
+#endif //AH5_MEMHANDLING_FWD_H__

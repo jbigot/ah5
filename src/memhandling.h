@@ -22,12 +22,48 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-/** Maximum number of thread supported in the multiple thread copy
- *
- * \todo automatically detect the actual max number of thread or dynamically
- * detect it so as not to crash on MIC for example
+#ifndef AH5_MEMHANDLING_H__
+#define AH5_MEMHANDLING_H__
+
+#include "memhandling_fwd.h"
+
+
+/**
  */
-#define MAX_NB_THREAD 32
+struct data_buf_s
+{
+	/** the way the memory buffer should be handled. This is a logical OR
+	 *  of buffer_strategy_t
+	 */
+	int strategy;
+
+	/** The buffer where the data is copied
+	 */
+	void *content;
+
+	/** the used size in the memory buffer in bytes
+	 */
+	size_t used_size;
+
+	/** the maximum size of the memory buffer in bytes
+	 */
+	size_t max_size;
+	
+};
+
+
+/**
+ */
+void freebuffer( data_buf_t *buf );
+
+
+/** Grows the memory buffer similarly to realloc, but disards the currently
+ * held data.
+ * 
+ * @param[in] buf a pointer to the buffer to grow
+ * @param size the requested minimum size for the buffer
+ */
+void growbuffer( data_buf_t *buf, size_t size );
 
 
 /** This function has the exact same prototype as memcpy and does the exact same
@@ -54,3 +90,4 @@ void* memcpy_omp( void* dest, void* src, size_t size );
 void* slicecpy( void* dest, void* src, hid_t type, unsigned rank, hsize_t* sizes,
 		hsize_t* lbounds, hsize_t* ubounds, int parallelism );
 
+#endif //AH5_MEMHANDLING_H__

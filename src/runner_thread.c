@@ -48,23 +48,6 @@ int runner_thread_wait( ah5_t self )
 }
 
 
-/** Waits for the worker thread to finish its previous run
- * @param self a pointer to the instance state
- * @returns 0 on success, non-null on error
- */
-inline static int writer_thread_wait( ah5_t self )
-{
-	/* wait for the writer thread */
-	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	/* wait for a potential previous write command to be executed */
-	while ( self->commands ) {
-		LOG_STATUS("waiting for writer thread");
-		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
-	}
-	return 0;
-}
-
-
 #if H5_VERS_MAJOR >= 1 && H5_VERS_MINOR >= 8 && H5_VERS_RELEASE >= 14
 #define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_ID_g
 #else

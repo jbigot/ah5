@@ -82,6 +82,7 @@ int ah5_init_file( ah5_t* pself, const char *dirname, size_t max_size )
 		int fd = open(dirname, O_CREAT|O_NOATIME|O_TMPFILE|O_RDWR|O_TRUNC);
 		self->data_buf.content = mmap(NULL, self->data_buf.max_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_HUGETLB, fd, 0);
 	}
+	if ( pthread_mutex_unlock(&self->mutex) ) RETURN_ERROR;
 	return 0;
 }
 
@@ -97,6 +98,7 @@ int ah5_init_mem( ah5_t* pself, void *buffer, size_t max_size )
 	} else {
 		self->data_buf.strategy |= BUF_DYNAMIC;
 	}
+	if ( pthread_mutex_unlock(&self->mutex) ) RETURN_ERROR;
 	return 0;
 }
 
@@ -117,17 +119,20 @@ int ah5_finalize( ah5_t self )
 	if ( pthread_cond_signal(&(self->cond)) ) RETURN_ERROR;
 	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	
-	/* wait for the writer thread to terminate */
-	if ( pthread_join( self->thread, NULL) ) RETURN_ERROR;
-	
-	/* free all memory */
-	free(self->data_buf.content);
-	
-	LOG_STATUS("finalized Async HDF5 instance");
+	// cleanup resources
+	pthread_join( self->thread, NULL);
 	if ( self->logging.closing_strategy == FILE_CLOSE ) {
 		fclose(self->logging.file);
 	}
+	pthread_mutex_destroy(&self->mutex);
+	pthread_cond_destroy(&self->cond);
+	freebuffer(&self->data_buf);
+	
+	/* free all memory */
+	free(self->data_buf.content);
 	free(self);
+	
+	LOG_STATUS("finalized Async HDF5 instance");
 	return 0;
 }
 
