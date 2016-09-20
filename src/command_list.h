@@ -27,10 +27,8 @@
 
 #include <hdf5.h>
 
+#include "ah5.h"
 #include "command_list_fwd.h"
-
-
-#define AH5_MAX_RANK 7
 
 
 /** Represents an HDF5-write call

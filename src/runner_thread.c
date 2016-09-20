@@ -31,10 +31,7 @@
 
 #include "runner_thread.h"
 
-/** Waits for the worker thread to finish its previous run
- * @param self a pointer to the instance state
- * @returns 0 on success, non-null on error
- */
+
 int runner_thread_wait( ah5_t self )
 {
 	/* wait for the writer thread */
@@ -55,10 +52,6 @@ int runner_thread_wait( ah5_t self )
 #endif
 
 
-/** The function executed by the writer thread
- * @param self_void a pointer to the instance state as a void*
- * @returns NULL
- */
 void* runner_thread_main( void* self_void )
 {
 	ah5_t self = self_void;
