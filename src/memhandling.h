@@ -45,7 +45,8 @@ struct data_buf_s
 	 */
 	size_t used_size;
 
-	/** the maximum size of the memory buffer in bytes
+	/** the maximum size of the memory buffer in bytes, if strategy & BUF_DYNAMIC
+	 * this can be grown
 	 */
 	size_t max_size;
 	
@@ -64,6 +65,12 @@ void freebuffer( data_buf_t *buf );
  * @param size the requested minimum size for the buffer
  */
 void growbuffer( data_buf_t *buf, size_t size );
+
+
+void buf_init_file( data_buf_t *buf, const char *dirname, size_t max_size );
+
+
+void buf_init_mem( data_buf_t *buf, void *buffer, size_t max_size );
 
 
 /** This function has the exact same prototype as memcpy and does the exact same

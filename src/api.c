@@ -26,11 +26,11 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <string.h>
 
 #include "ah5.h"
 #include "ah5_impl.h"
@@ -69,19 +69,7 @@ int ah5_init_file( ah5_t* pself, const char *dirname, size_t max_size )
 {
 	if ( ah5_init_base(pself) ) return 1;
 	ah5_t self = *pself;
-	self->data_buf.strategy |= BUF_MMAPED;
-	if ( max_size ) {
-		size_t pagesize = sysconf(_SC_PAGE_SIZE);
-		self->data_buf.max_size = ( max_size / pagesize ) * pagesize;
-		int fd = open(dirname, O_CREAT|O_NOATIME|O_TMPFILE|O_RDWR|O_TRUNC);
-		self->data_buf.content = mmap(NULL, self->data_buf.max_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_HUGETLB, fd, 0);
-	} else {
-		self->data_buf.strategy |= BUF_DYNAMIC;
-		size_t pagesize = sysconf(_SC_PAGE_SIZE);
-		self->data_buf.max_size = pagesize;
-		int fd = open(dirname, O_CREAT|O_NOATIME|O_TMPFILE|O_RDWR|O_TRUNC);
-		self->data_buf.content = mmap(NULL, self->data_buf.max_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_HUGETLB, fd, 0);
-	}
+	buf_init_file(&self->data_buf, dirname, max_size);
 	if ( pthread_mutex_unlock(&self->mutex) ) RETURN_ERROR;
 	return 0;
 }
@@ -91,13 +79,7 @@ int ah5_init_mem( ah5_t* pself, void *buffer, size_t max_size )
 {
 	if ( ah5_init_base(pself) ) return 1;
 	ah5_t self = *pself;
-	self->data_buf.strategy |= BUF_MALLOCED;
-	if ( max_size ) {
-		self->data_buf.max_size = max_size;
-		self->data_buf.content = buffer;
-	} else {
-		self->data_buf.strategy |= BUF_DYNAMIC;
-	}
+	buf_init_mem(&self->data_buf, buffer, max_size);
 	if ( pthread_mutex_unlock(&self->mutex) ) RETURN_ERROR;
 	return 0;
 }

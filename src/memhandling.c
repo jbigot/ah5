@@ -22,12 +22,18 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <malloc.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 
 #include "ah5_impl.h"
@@ -62,13 +68,51 @@ void freebuffer( data_buf_t *buf )
 }
 
 
+void buf_init_mem( data_buf_t *buf, void *buffer, size_t max_size )
+{
+	buf->strategy = BUF_MALLOCED;
+	buf->max_size = max_size;
+	buf->used_size = 0;
+	buf->content = buffer;
+	if ( !max_size ) {
+		buf->strategy |= BUF_DYNAMIC;
+		buf->max_size = MALL_SZ(buf->content, 0);
+	}
+}
+
+
+void buf_init_file( data_buf_t *buf, const char *dirname, size_t max_size )
+{
+	buf->strategy = BUF_MMAPED;
+	size_t pagesize = sysconf(_SC_PAGE_SIZE);
+	buf->max_size = max_size & ~(pagesize - 1);
+	buf->used_size = 0;
+	if ( !max_size ) {
+		buf->max_size = pagesize;
+		buf->strategy |= BUF_DYNAMIC;
+	}
+	int fd = open(dirname, O_CREAT|O_NOATIME|O_TMPFILE|O_RDWR|O_TRUNC);
+	buf->content = mmap(NULL, buf->max_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_HUGETLB, fd, 0);
+	close(fd);
+}
+
+
 void growbuffer( data_buf_t *buf, size_t size )
 {
 	if ( size > buf->max_size && ( buf->strategy & BUF_DYNAMIC ) ) {
+		if ( buf->strategy & BUF_MALLOCED ) {
 // 		LOG_DEBUG("Growing buffer size");
-		freebuffer(buf);
-		buf->content = malloc(size);
-		buf->max_size = MALL_SZ(buf->content, size);
+			freebuffer(buf);
+			buf->content = malloc(size);
+			buf->max_size = MALL_SZ(buf->content, size);
+		} else if ( buf->strategy & BUF_MMAPED ) {
+			size_t pagesize = sysconf(_SC_PAGE_SIZE);
+			size = (size + pagesize - 1) & ~(pagesize - 1);
+			buf->content = mremap(buf->content, buf->max_size, size, MREMAP_MAYMOVE);
+			buf->max_size  = size;
+		} else {
+			assert(0 && "Invalid buffer strategy");
+		}
 	}
 }
 
