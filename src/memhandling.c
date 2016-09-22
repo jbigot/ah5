@@ -68,6 +68,16 @@ void freebuffer( data_buf_t *buf )
 }
 
 
+void buf_init_empty( data_buf_t* buf )
+{
+	buf->content = NULL;
+	buf->max_size = 0;
+	buf->strategy = BUF_BASE;
+	buf->used_size = 0;
+}
+
+
+
 void buf_init_mem( data_buf_t *buf, void *buffer, size_t max_size )
 {
 	buf->strategy = BUF_MALLOCED;

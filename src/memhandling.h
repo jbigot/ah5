@@ -67,6 +67,9 @@ void freebuffer( data_buf_t *buf );
 void growbuffer( data_buf_t *buf, size_t size );
 
 
+void buf_init_empty( data_buf_t *buf );
+
+
 void buf_init_file( data_buf_t *buf, const char *dirname, size_t max_size );
 
 

@@ -28,9 +28,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #include "ah5.h"
 #include "ah5_impl.h"
@@ -44,17 +41,11 @@ int ah5_init_base( ah5_t* pself )
 {
 	ah5_t self = malloc(sizeof(struct ah5_s));
 	if ( H5open() ) RETURN_ERROR;
-	self->data_buf.content = NULL;
-	self->data_buf.max_size = 0;
-	self->data_buf.strategy = BUF_BASE;
-	self->data_buf.used_size = 0;
 	self->commands = NULL;
 	self->thread_stop = 0;
-	self->file = 0;
 	self->parallel_copy = 1;
-	self->logging.file = stderr;
-	self->logging.closing_strategy = FILE_KEEP_OPEN;
-	self->logging.verbosity = AH5_VERB_ERROR;
+	buf_init_empty(&self->data_buf);
+	log_init(&self->logging);
 	if ( pthread_mutex_init(&(self->mutex), NULL) ) RETURN_ERROR;
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
 	if ( pthread_cond_init(&(self->cond), NULL) ) RETURN_ERROR;
@@ -106,9 +97,7 @@ int ah5_finalize( ah5_t self )
 	pthread_cond_destroy(&self->cond);
 	pthread_mutex_destroy(&self->mutex);
 	freebuffer(&self->data_buf);
-	if ( self->logging.closing_strategy == FILE_CLOSE ) {
-		fclose(self->logging.file);
-	}
+	log_destroy(&self->logging);
 	free(self);
 	
 	LOG_STATUS("finalized Async HDF5 instance");
@@ -119,7 +108,7 @@ int ah5_finalize( ah5_t self )
 int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl )
 {
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	self->logging.verbosity = log_lvl;
+	log_set_lvl(&self->logging, log_lvl);
 	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
@@ -127,24 +116,29 @@ int ah5_set_loglvl( ah5_t self, ah5_verbosity_t log_lvl )
 
 int ah5_set_logfile( ah5_t self, char* log_file_name )
 {
-	int log_fd;
 	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
-	if ( self->logging.closing_strategy == FILE_CLOSE ) {
-		fclose(self->logging.file);
-	}
-	log_fd = open(log_file_name, O_WRONLY|O_APPEND|O_CREAT|O_SYNC|O_DSYNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-	if ( log_fd == -1 ) RETURN_ERROR;
-	self->logging.file = fdopen(log_fd, "a");
-	if ( !self->logging.file ) RETURN_ERROR;
+	log_set_filename(&self->logging, log_file_name);
 	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
 	return 0;
 }
 
 
-int ah5_set_logfile_f( ah5_t self, FILE* log_file_name );
+int ah5_set_logfile_f( ah5_t self, FILE* log_file )
+{
+	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
+	log_set_file(&self->logging, log_file, 0);
+	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
+	return 0;
+}
 
 
-int ah5_set_logfile_desc( ah5_t self, int log_file_desc );
+int ah5_set_logfile_desc( ah5_t self, int log_file_desc )
+{
+	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
+	log_set_filedesc(&self->logging, log_file_desc, 0);
+	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR;
+	return 0;
+}
 
 
 int ah5_set_paracopy( ah5_t self, int parallel_copy )

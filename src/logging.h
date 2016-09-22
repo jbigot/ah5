@@ -129,4 +129,34 @@ inline static int64_t clockget()
 	return (int64_t)tv.tv_sec*1000*1000 + tv.tv_usec;
 }
 
+
+/**
+ */
+void log_init( logging_t *log );
+
+
+/**
+ */
+void log_destroy( logging_t *log );
+
+
+/**
+ */
+void log_set_lvl( logging_t *log, ah5_verbosity_t log_lvl );
+
+
+/**
+ */
+int log_set_filename( logging_t *log, char* file_name );
+
+
+/**
+ */
+int log_set_file( logging_t *log, FILE* file, int keep_open );
+
+
+/**
+ */
+int log_set_filedesc( logging_t *log, int file_desc, int keep_open );
+
 #endif /* AH5_LOGGING_H__ */
