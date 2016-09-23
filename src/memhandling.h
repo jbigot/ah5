@@ -55,7 +55,7 @@ struct data_buf_s
 
 /**
  */
-void freebuffer( data_buf_t *buf );
+void buf_free( data_buf_t *buf );
 
 
 /** Grows the memory buffer similarly to realloc, but disards the currently
@@ -64,7 +64,7 @@ void freebuffer( data_buf_t *buf );
  * @param[in] buf a pointer to the buffer to grow
  * @param size the requested minimum size for the buffer
  */
-void growbuffer( data_buf_t *buf, size_t size );
+void buf_grow( data_buf_t *buf, size_t size );
 
 
 void buf_init_empty( data_buf_t *buf );

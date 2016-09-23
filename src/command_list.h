@@ -78,12 +78,6 @@ struct command_list_s
 	 */
 	struct command_list_s *next;
 	
-	/** Access to the list does not grant access to the content of the node.
-	 *  It only allows to lock a previously unlocked node or to unlock a node 
-	 *  that had been locked by oneself.
-	 */
-	int content_lock;
-	
 	/** The actual content of the node
 	 */
 	data_write_t content;

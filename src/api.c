@@ -96,7 +96,7 @@ int ah5_finalize( ah5_t self )
 	pthread_join( self->thread, NULL);
 	pthread_cond_destroy(&self->cond);
 	pthread_mutex_destroy(&self->mutex);
-	freebuffer(&self->data_buf);
+	buf_free(&self->data_buf);
 	log_destroy(&self->logging);
 	free(self);
 	
@@ -205,16 +205,18 @@ int ah5_close( ah5_t self )
 	} while ( cmd->next != self->commands );
 	
 	/* allocate a buffer able to contain it all */
-	self->data_buf.content = realloc(self->data_buf.content, buf_size);
+	buf_grow(&self->data_buf, buf_size);
 	
 	/* copy the data into the bufer */
 	void *buf = self->data_buf.content;
-	cmd = self->commands;
-	if ( cmd ) do {
-		int64_t start_time = clockget();
+	cmd = NULL;
+	if ( self->commands ) cmd = self->commands->previous;
+	while ( cmd && cmd != self->commands ) {
+		int64_t cmd_start_time = clockget();
+		size_t data_size = H5Tget_size(cmd->content.type);
+		if ( self->data_buf.max_size - self->data_buf.used_size < data_size ) break;
 		slicecpy(buf, cmd->content.buf, cmd->content.type, cmd->content.rank, cmd->content.dims,
 						cmd->content.lbounds, cmd->content.ubounds, self->parallel_copy);
-		size_t data_size = H5Tget_size(cmd->content.type);
 		/* since only the data has been copied, update dims, lbounds & ubounds */
 		for ( unsigned dim = 0; dim<cmd->content.rank; ++dim ) {
 			data_size *= cmd->content.ubounds[dim]-cmd->content.lbounds[dim];
@@ -224,8 +226,8 @@ int ah5_close( ah5_t self )
 		}
 		cmd->content.buf = buf;
 		buf = ((char*)buf) + data_size;
-		LOG_DEBUG("copy duration: %" PRId64 "us", clockget()-start_time);
-	} while ( cmd->next != self->commands );
+		LOG_DEBUG("copy duration: %" PRId64 "us", clockget()-cmd_start_time);
+	}
 	
 	/* wake up the writer thread */
 	if ( pthread_cond_signal(&(self->cond)) ) RETURN_ERROR;

@@ -58,7 +58,7 @@
 #endif
 
 
-void freebuffer( data_buf_t *buf )
+void buf_free( data_buf_t *buf )
 {
 	if ( buf->strategy & BUF_MALLOCED ) free(buf->content);
 	if ( buf->strategy & BUF_MMAPED ) munmap(buf->content, buf->max_size);
@@ -107,12 +107,12 @@ void buf_init_file( data_buf_t *buf, const char *dirname, size_t max_size )
 }
 
 
-void growbuffer( data_buf_t *buf, size_t size )
+void buf_grow( data_buf_t *buf, size_t size )
 {
 	if ( size > buf->max_size && ( buf->strategy & BUF_DYNAMIC ) ) {
 		if ( buf->strategy & BUF_MALLOCED ) {
 // 		LOG_DEBUG("Growing buffer size");
-			freebuffer(buf);
+			buf_free(buf);
 			buf->content = malloc(size);
 			buf->max_size = MALL_SZ(buf->content, size);
 		} else if ( buf->strategy & BUF_MMAPED ) {
