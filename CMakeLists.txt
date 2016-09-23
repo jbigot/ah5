@@ -125,7 +125,7 @@ install(DIRECTORY include/ DESTINATION include)
 if("${ENABLE_FORTRAN}")
 	add_subdirectory(vendor/bpp bpp EXCLUDE_FROM_ALL)
 	bpp_preprocess(SRC_Ah5_F90 src/ah5.F90.bpp)
-	add_custom_target(bpp_file DEPENDS "${SRC_Ah5_F90}") # to serialize src generation
+	add_custom_target(ah5_bpp_file DEPENDS "${SRC_Ah5_F90}") # to serialize src generation
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/finclude/"
 		DESTINATION "lib/Ah5-${Ah5_VERSION}/finclude"
 	)
@@ -134,7 +134,7 @@ if("${ENABLE_FORTRAN}")
 	add_library(ah5_f90.static STATIC
 		${SRC_Ah5_F90}
 	)
-	add_dependencies(ah5_f90.static bpp_file) # to serialize src generation
+	add_dependencies(ah5_f90.static ah5_bpp_file) # to serialize src generation
 	set_property(TARGET ah5_f90.static PROPERTY Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/finclude")
 	set_property(TARGET ah5_f90.static PROPERTY OUTPUT_NAME ah5_f90)
 	set_property(TARGET ah5_f90.static PROPERTY VERSION ${Ah5_VERSION})
@@ -156,7 +156,7 @@ if("${ENABLE_FORTRAN}")
 	add_library(ah5_f90.shared SHARED
 		${SRC_Ah5_F90}
 	)
-	add_dependencies(ah5_f90.shared bpp_file) # to serialize src generation
+	add_dependencies(ah5_f90.shared ah5_bpp_file) # to serialize src generation
 	set_property(TARGET ah5_f90.shared PROPERTY Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/trash")
 	set_property(TARGET ah5_f90.shared PROPERTY OUTPUT_NAME ah5_f90)
 	set_property(TARGET ah5_f90.shared PROPERTY VERSION ${Ah5_VERSION})
