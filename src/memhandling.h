@@ -25,12 +25,28 @@
 #ifndef AH5_MEMHANDLING_H__
 #define AH5_MEMHANDLING_H__
 
-#include "memhandling_fwd.h"
+/** The various ways the memory buffer can be handled
+ */
+typedef enum
+{
+	/// the buffer is allocated to a fixed size
+	BUF_BASE=0,
+	
+	/// the buffer can be grown fit the data
+	BUF_DYNAMIC=1,
+	
+	/// the buffer has been mmap'ed by Ah5 and should be free'd
+	BUF_MMAPED=2,
+	
+	/// the buffer has been malloc'ed by Ah5 and should be munmap'ed
+	BUF_MALLOCED=4
+	
+} buffer_strategy_t;
 
 
 /**
  */
-struct data_buf_s
+typedef struct data_buf_s
 {
 	/** the way the memory buffer should be handled. This is a logical OR
 	 *  of buffer_strategy_t
@@ -50,7 +66,7 @@ struct data_buf_s
 	 */
 	size_t max_size;
 	
-};
+} data_buf_t;
 
 
 /**

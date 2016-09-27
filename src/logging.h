@@ -31,10 +31,9 @@
 #include <sys/time.h>
 
 #include "ah5.h"
-#include "logging_fwd.h"
 
 
-struct logging_s {
+typedef struct logging_s {
 	/** the file where to log
 		*/
 	FILE* file;
@@ -48,7 +47,7 @@ struct logging_s {
 		*/
 	ah5_verbosity_t verbosity;
 	
-};
+} logging_t;
 
 
 #define LOG_ERROR( logger, ... ) do {\
