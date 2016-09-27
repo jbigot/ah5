@@ -27,14 +27,17 @@
 
 #include <hdf5.h>
 
+#include "logging.h"
 #include "ah5.h"
-#include "command_list_fwd.h"
 
 
 /** Represents an HDF5-write call
  */
 typedef struct data_write_s
 {
+	struct data_write_s *next;
+	struct data_write_s *prev;
+
 	/** The data
 	 */
 	void *buf;
@@ -66,22 +69,54 @@ typedef struct data_write_s
 } data_write_t;
 
 
-/** A node of a double-linked list of data_write_t
+void dw_run( data_write_t *cmd, hid_t file, logging_t log );
+
+
+/** A list of write commands
  */
-struct command_list_s
+typedef struct command_list_s
 {
 	/** The previous element in the list
 	 */
-	struct command_list_s *previous;
+	data_write_t *head;
 	
 	/** The next element in the list
 	 */
-	struct command_list_s *next;
+	data_write_t *tail;
 	
-	/** The actual content of the node
-	 */
-	data_write_t content;
-	
-};
+} write_list_t;
+
+
+/** initialize an empty  list
+ * @param list the list to initialize
+ */
+static inline void cl_init( write_list_t *list ) { list->tail = list->head = NULL; }
+
+
+/** Retrieves the tail of a list
+ * @param list the list to access
+ * @return the tail of the list
+ */
+static inline data_write_t *cl_tail( write_list_t *list ) { return list->tail; }
+
+
+/** Retrieves the head of a list
+ * @param list the list to access
+ * @return the head of the list
+ */
+static inline data_write_t *cl_head( write_list_t *list ) { return list->head; }
+
+
+/** Inserts a new node in the list just before the one provided
+ * @param list the list to modify
+ * @return the inserted tail
+ */
+data_write_t *cl_insert_tail( write_list_t *list );
+
+
+/** Removes the first node from a list
+ * @param list the list from which to remove the first node
+ */
+void cl_remove_head( write_list_t *list );
 
 #endif /* AH5_COMMAND_LIST_H__ */

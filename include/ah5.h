@@ -139,6 +139,14 @@ int ah5_set_paracopy( ah5_t self, int parallel_copy );
  */
 int ah5_open( ah5_t self, char* file_name );
 
+/** Synonym for ::ah5_open
+ * @param self the Ah5 instance
+ * @param file_name the name of the file where to write the data
+ * @returns 0 on success, non-null on error
+ * @deprecated use ::ah5_open instead
+ */
+int ah5_start( ah5_t self, char* file_name );
+
 /** Issues a write command to the queue
  * 
  * The provided data should remain valid until the following close command
@@ -162,5 +170,12 @@ int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
  * @returns 0 on success, non-null on error
  */
 int ah5_close( ah5_t self );
+
+/** Synonym for ::ah5_close
+ * @param self the Ah5 instance
+ * @returns 0 on success, non-null on error
+ * @deprecated use ::ah5_close instead
+ */
+int ah5_finish( ah5_t self );
 
 #endif /* AH5_H__ */

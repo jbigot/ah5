@@ -28,9 +28,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <sys/time.h>
 
+#include "ah5.h"
 #include "logging_fwd.h"
 
 
@@ -51,9 +51,9 @@ struct logging_s {
 };
 
 
-#define LOG_ERROR( ... ) do {\
-	if (self->logging.verbosity >= AH5_VERB_ERROR) {\
-		FILE* out = self->logging.file? self->logging.file : stderr;\
+#define LOG_ERROR( logger, ... ) do {\
+	if ((logger).verbosity >= AH5_VERB_ERROR) {\
+		FILE* out = (logger).file? (logger).file : stderr;\
 		fprintf(out, "*** Error: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -63,9 +63,9 @@ struct logging_s {
 
 
 
-#define LOG_WARNING( ... ) do {\
-	if (self->logging.verbosity >= AH5_VERB_WARNING) {\
-		FILE* out = self->logging.file? self->logging.file : stderr;\
+#define LOG_WARNING( logger, ... ) do {\
+	if ((logger).verbosity >= AH5_VERB_WARNING) {\
+		FILE* out = (logger).file? (logger).file : stderr;\
 		fprintf(out, "*** Warning: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -74,9 +74,9 @@ struct logging_s {
 } while (0)
 
 
-#define LOG_STATUS( ... ) do {\
-	if (self->logging.verbosity >= AH5_VERB_STATUS) {\
-		FILE* out = self->logging.file? self->logging.file : stderr;\
+#define LOG_STATUS( logger, ... ) do {\
+	if ( (logger).verbosity >= AH5_VERB_STATUS ) {\
+		FILE* out = (logger).file? (logger).file : stderr;\
 		fprintf(out, "*** Status: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -86,9 +86,9 @@ struct logging_s {
 
 
 #ifndef NDEBUG
-#define LOG_DEBUG( ... ) do {\
-	if (self->logging.verbosity >= AH5_VERB_DEBUG) {\
-		FILE* out = self->logging.file? self->logging.file : stderr;\
+#define LOG_DEBUG( logger, ... ) do {\
+	if ( (logger).verbosity >= AH5_VERB_DEBUG) {\
+		FILE* out = (logger).file? (logger).file : stderr;\
 		fprintf(out, "*** Log: %s:%d: ", __FILE__, __LINE__);\
 		fprintf(out , ##__VA_ARGS__);\
 		fprintf(out, "\n");\
@@ -100,18 +100,18 @@ struct logging_s {
 #endif
 
 
-#define SIGNAL_ERROR do {\
+#define SIGNAL_ERROR( logger ) do {\
 	int errno_save = errno;\
-	LOG_ERROR(" ----- Fatal: exiting -----\n");\
+	LOG_ERROR(logger, " ----- Fatal: exiting -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	exit(errno_save);\
 } while (0)
 
 
-#define RETURN_ERROR do {\
+#define RETURN_ERROR( logger ) do {\
 	int errno_save = errno;\
-	LOG_WARNING(" ----- Leaving function -----\n");\
+	LOG_WARNING(logger, " ----- Leaving function -----\n");\
 	errno = errno_save;\
 	perror(NULL);\
 	errno = errno_save;\

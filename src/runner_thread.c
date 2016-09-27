@@ -24,6 +24,7 @@
 
 #include <pthread.h>
 #include <assert.h>
+#include <hdf5_hl.h>
 
 #include "ah5_impl.h"
 #include "logging.h"
@@ -35,75 +36,53 @@
 int runner_thread_wait( ah5_t self )
 {
 	/* wait for the writer thread */
-	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR;
+	if ( pthread_mutex_lock(&(self->mutex)) ) RETURN_ERROR(self->logging);
 	/* wait for a potential previous write command to be executed */
-	while ( self->commands ) {
-		LOG_STATUS("waiting for writer thread");
-		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR;
+	while ( self->commands.head ) {
+		LOG_STATUS(self->logging, "waiting for writer thread");
+		if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) RETURN_ERROR(self->logging);
 	}
 	return 0;
 }
 
 
-#if H5_VERS_MAJOR >= 1 && H5_VERS_MINOR >= 8 && H5_VERS_RELEASE >= 14
-#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_ID_g
-#else
-#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_g
-#endif
-
-
 void* runner_thread_main( void* self_void )
 {
 	ah5_t self = self_void;
-	if ( pthread_mutex_lock(&(self->mutex)) ) SIGNAL_ERROR;
-	LOG_STATUS("async HDF5 thread started");
+	if ( pthread_mutex_lock(&(self->mutex)) ) SIGNAL_ERROR(self->logging);
+	LOG_STATUS(self->logging, "async HDF5 thread started");
 	for (;;) {
 		
 		/* when the command is to wait ... wait for it to change */
-		while ( ! self->commands && ! self->thread_stop ) {
-			if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) SIGNAL_ERROR;
+		while ( ! self->commands.head && ! self->thread_stop ) {
+			if ( pthread_cond_wait(&(self->cond), &(self->mutex)) ) SIGNAL_ERROR(self->logging);
 		}
 		
 		/* if the command is to stop ... stop */
 		if ( self->thread_stop ) {
-			LOG_DEBUG("async HDF5 thread executing terminate command");
+			LOG_DEBUG(self->logging, "async HDF5 thread executing terminate command");
 			pthread_mutex_unlock(&(self->mutex));
 			return NULL;
 		}
 		
 		/* otherwise, the command is to execute the write list */
-		LOG_DEBUG("async HDF5 thread executing write commands");
+		LOG_DEBUG(self->logging, "async HDF5 thread executing write commands");
 		int64_t start_time = clockget();
 		
-    while ( self->commands ) {
-      data_write_t *cmd = &self->commands->content;
-			LOG_DEBUG("async HDF5 writing data %s of rank %u", cmd->name, (unsigned)cmd->rank);
-			
-			hid_t space_id = H5Screate_simple(cmd->rank, cmd->dims, NULL);
-			hid_t plist_id = H5Pcreate(CLS_DSET_CREATE);
-			if ( H5Pset_layout(plist_id, H5D_CONTIGUOUS) ) SIGNAL_ERROR;
-#if ( H5Dcreate_vers == 2 )
-			hid_t dset_id = H5Dcreate2( self->file, cmd->name, cmd->type, space_id,
-					H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-#else
-			hid_t dset_id = H5Dcreate( file_id, cmd->name, cmd->type, space_id,
-					H5P_DEFAULT );
-#endif
-			if ( H5Dwrite(dset_id, cmd->type, H5S_ALL, H5S_ALL, H5P_DEFAULT,cmd->buf) ) SIGNAL_ERROR;
-			if ( H5Dclose(dset_id) ) SIGNAL_ERROR;
-			if ( H5Pclose(plist_id) ) SIGNAL_ERROR;
-			if ( H5Sclose(space_id) ) SIGNAL_ERROR;
-			
-			self->commands = cl_remove_head(self->commands);
+		while ( self->commands.head ) {
+			data_write_t *cmd = self->commands.head;
+			LOG_DEBUG(self->logging, "async HDF5 writing data %s of rank %u", cmd->name, (unsigned)cmd->rank);
+			dw_run(cmd, self->file, self->logging);
+			cl_remove_head(&self->commands);
 		}
 
-		LOG_DEBUG("async HDF5 closing file");
-		if ( H5Fclose(self->file) ) SIGNAL_ERROR;
+		LOG_DEBUG(self->logging, "async HDF5 closing file");
+		if ( H5Fclose(self->file) ) SIGNAL_ERROR(self->logging);
 		
-		LOG_DEBUG("async HDF5 write duration: %" PRId64 "us", clockget()-start_time);
+		LOG_DEBUG(self->logging, "async HDF5 write duration: %" PRId64 "us", clockget()-start_time);
 		/* once the write list has been fully executed, wake up the main thread
 		 * potentially waiting for us */
-		if ( pthread_cond_signal(&(self->cond)) ) SIGNAL_ERROR;
+		if ( pthread_cond_signal(&(self->cond)) ) SIGNAL_ERROR(self->logging);
 	}
 }
 

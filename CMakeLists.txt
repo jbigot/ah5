@@ -75,6 +75,7 @@ install(DIRECTORY "include/" DESTINATION include)
 set(Ah5_SRC 
 	src/api.c
 	src/command_list.c
+	src/logging.c
 	src/memhandling.c
 	src/runner_thread.c
 )

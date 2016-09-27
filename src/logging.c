@@ -61,10 +61,10 @@ int log_set_filename( logging_t *log, char* file_name )
 {
 	log_destroy(log);
 	int log_fd = open(file_name, O_WRONLY|O_APPEND|O_CREAT|O_SYNC|O_DSYNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-	if ( log_fd == -1 ) RETURN_ERROR;
+	if ( log_fd == -1 ) RETURN_ERROR(*log);
 	log->file = fdopen(log_fd, "a");
 	log->closing_strategy = FILE_CLOSE;
-	if ( !log->file ) RETURN_ERROR;
+	if ( !log->file ) RETURN_ERROR(*log);
 	return 0;
 }
 
@@ -82,7 +82,7 @@ int log_set_filedesc( logging_t *log, int file_desc, int keep_open )
 {
 	log_destroy(log);
 	log->file = fdopen(file_desc, "a");
-	if ( !log->file ) RETURN_ERROR;
+	if ( !log->file ) RETURN_ERROR(*log);
 	if ( !keep_open ) log->closing_strategy = FILE_CLOSE;
 	return 0;
 }

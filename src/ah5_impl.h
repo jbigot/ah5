@@ -31,7 +31,7 @@
 #include "ah5.h"
 #include "memhandling.h"
 #include "logging.h"
-#include "command_list_fwd.h"
+#include "command_list.h"
 
 /** Status of the asynchronous HDF5 instance
  */
@@ -50,7 +50,7 @@ struct ah5_s {
 
 	/** The actual command list or NULL if empty
 	 */
-	write_list_t* commands;
+	write_list_t commands;
 
 	/** the thread executing the command list
 	 */

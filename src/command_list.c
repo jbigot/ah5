@@ -27,31 +27,55 @@
 #include "command_list.h"
 
 
-write_list_t * cl_remove_head( write_list_t* list )
+#if H5_VERS_MAJOR >= 1 && H5_VERS_MINOR >= 8 && H5_VERS_RELEASE >= 14
+#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_ID_g
+#else
+#define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_g
+#endif
+
+
+void dw_run( data_write_t *cmd, hid_t file, logging_t log )
 {
-	write_list_t *result = list->next;
-	if ( list->next == list ) result = NULL;
-
-	list->next->previous = list->previous;
-	list->next->previous->next = list->next;
-
-	free(list);
-	return result;
+	hid_t space_id = H5Screate_simple(cmd->rank, cmd->dims, NULL);
+	hid_t plist_id = H5Pcreate(CLS_DSET_CREATE);
+	if ( H5Pset_layout(plist_id, H5D_CONTIGUOUS) ) SIGNAL_ERROR(log);
+#if ( H5Dcreate_vers == 2 )
+	hid_t dset_id = H5Dcreate2( file, cmd->name, cmd->type, space_id,
+			H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+#else
+	hid_t dset_id = H5Dcreate( file_id, cmd->name, cmd->type, space_id,
+			H5P_DEFAULT );
+#endif
+	if ( H5Dwrite(dset_id, cmd->type, H5S_ALL, H5S_ALL, H5P_DEFAULT,cmd->buf) ) SIGNAL_ERROR(log);
+	if ( H5Dclose(dset_id) ) SIGNAL_ERROR(log);
+	if ( H5Pclose(plist_id) ) SIGNAL_ERROR(log);
+	if ( H5Sclose(space_id) ) SIGNAL_ERROR(log);
 }
 
 
-write_list_t *cl_insert_tail( write_list_t *list )
+void cl_remove_head( write_list_t* list )
 {
-	write_list_t *new_node = malloc(sizeof(write_list_t));
-	if ( list ) {
-		new_node->previous = list->previous;
-		list->previous->next = new_node;
-		new_node->next = list;
-		list->previous = new_node;
+	data_write_t *old_head = list->head;
+	list->head = list->head->next;
+	if ( list->head ) {
+		list->head->prev = NULL;
 	} else {
-		new_node->next = new_node;
-		new_node->previous = new_node;
-		list = new_node;
+		list->tail = NULL;
 	}
-	return list;
+	free(old_head);
+}
+
+
+data_write_t *cl_insert_tail( write_list_t *list )
+{
+	data_write_t *new_node = malloc(sizeof(data_write_t));
+	new_node->prev = list->tail;
+	new_node->next = NULL;
+	if ( list->tail ) {
+		list->tail->next = new_node;
+	} else {
+		list->head = new_node;
+	}
+	list->tail = new_node;
+	return new_node;
 }

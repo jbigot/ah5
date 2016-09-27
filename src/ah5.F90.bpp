@@ -47,7 +47,7 @@ module ah5
   endtype ah5_t
 
   public :: ah5_t, ah5_init, ah5_set_loglvl, ah5_set_logfile, ah5_set_paracopy, &
-      ah5_finalize, ah5_open, ah5_write, ah5_close
+      ah5_finalize, ah5_open, ah5_start, ah5_write, ah5_close, ah5_finish
 
   interface
 
@@ -312,6 +312,20 @@ contains
   !---------------------------------------------------------------------------
 
 
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_start( self, file_name, err )
+
+    type(ah5_t), intent(INOUT) :: self
+    character(LEN=*), intent(IN) :: file_name
+    integer, intent(OUT) :: err
+
+    call ah5_open(self, file_name, err)
+
+  endsubroutine ah5_start
+  !---------------------------------------------------------------------------
+
+
 !$SH   for T in ${HDF5TYPES}; do # T: type
 
   !===========================================================================
@@ -410,6 +424,18 @@ contains
     err = int(ah5_close_impl(self%content))
 
   endsubroutine ah5_close
+  !---------------------------------------------------------------------------
+
+  !===========================================================================
+  !---------------------------------------------------------------------------
+  subroutine ah5_finish( self, err )
+
+    type(ah5_t), intent(INOUT) :: self
+    integer, intent(OUT) :: err
+
+    call ah5_close(self, err)
+
+  endsubroutine ah5_finish
   !---------------------------------------------------------------------------
 
 
