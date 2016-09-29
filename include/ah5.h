@@ -36,9 +36,12 @@
 /** Verbosity levels supported by AH5
  */
 typedef enum {
-	AH5_VERB_ERROR=0, ///< only print a message on error
-	AH5_VERB_WARNING, ///< print a message on error or for warnings
-	AH5_VERB_STATUS, ///< print messages to follow even normal operation
+	/// only print a message on error
+	AH5_VERB_ERROR=0, 
+	/// print a message on error or for warnings
+	AH5_VERB_WARNING, 
+	/// print messages to follow even normal operation
+	AH5_VERB_STATUS, 
 	/// print everything, equal to VERBOSITY_STATUS for non-debug builds of Ah5
 	AH5_VERB_DEBUG
 } ah5_verbosity_t;

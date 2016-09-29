@@ -69,17 +69,22 @@ void* runner_thread_main( void* self_void )
 		LOG_DEBUG(self->logging, "async HDF5 thread executing write commands");
 		int64_t start_time = clockget();
 		
-		while ( self->commands.head ) {
-			data_write_t *cmd = self->commands.head;
-			LOG_DEBUG(self->logging, "async HDF5 writing data %s of rank %u", cmd->name, (unsigned)cmd->rank);
-			dw_run(cmd, self->file, self->logging);
-			cl_remove_head(&self->commands);
+		while ( !cl_empty(&self->commands) ) {
+			data_write_t *cmd = cl_remove_head(&self->commands);
+			hid_t file = self->file;
+			logging_t logger = self->logging;
+			// no need to hold the lock to do the copy
+			if ( pthread_mutex_unlock(&(self->mutex)) ) SIGNAL_ERROR(self->logging);
+			dw_run(cmd, file, logger);
+			dw_free(cmd);
+			if ( pthread_mutex_lock(&(self->mutex)) ) SIGNAL_ERROR(self->logging);
 		}
 
 		LOG_DEBUG(self->logging, "async HDF5 closing file");
 		if ( H5Fclose(self->file) ) SIGNAL_ERROR(self->logging);
 		
 		LOG_DEBUG(self->logging, "async HDF5 write duration: %" PRId64 "us", clockget()-start_time);
+		
 		/* once the write list has been fully executed, wake up the main thread
 		 * potentially waiting for us */
 		if ( pthread_cond_signal(&(self->cond)) ) SIGNAL_ERROR(self->logging);

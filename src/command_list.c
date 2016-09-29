@@ -34,8 +34,18 @@
 #endif
 
 
+void dw_free(data_write_t* cmd)
+{
+	free(cmd->name);
+	free(cmd);
+}
+
+
+
 void dw_run( data_write_t *cmd, hid_t file, logging_t log )
 {
+	LOG_DEBUG(log, "writing data %s of rank %u", cmd->name,
+			(unsigned)cmd->rank);
 	hid_t space_id = H5Screate_simple(cmd->rank, cmd->dims, NULL);
 	hid_t plist_id = H5Pcreate(CLS_DSET_CREATE);
 	if ( H5Pset_layout(plist_id, H5D_CONTIGUOUS) ) SIGNAL_ERROR(log);
@@ -46,23 +56,26 @@ void dw_run( data_write_t *cmd, hid_t file, logging_t log )
 	hid_t dset_id = H5Dcreate( file_id, cmd->name, cmd->type, space_id,
 			H5P_DEFAULT );
 #endif
-	if ( H5Dwrite(dset_id, cmd->type, H5S_ALL, H5S_ALL, H5P_DEFAULT,cmd->buf) ) SIGNAL_ERROR(log);
+	if ( H5Dwrite(dset_id, cmd->type, H5S_ALL, H5S_ALL, H5P_DEFAULT,cmd->buf) ) {
+		SIGNAL_ERROR(log);
+	}
 	if ( H5Dclose(dset_id) ) SIGNAL_ERROR(log);
 	if ( H5Pclose(plist_id) ) SIGNAL_ERROR(log);
 	if ( H5Sclose(space_id) ) SIGNAL_ERROR(log);
 }
 
 
-void cl_remove_head( write_list_t* list )
+data_write_t *cl_remove_head( write_list_t *list )
 {
 	data_write_t *old_head = list->head;
+	if ( !old_head ) return NULL;
 	list->head = list->head->next;
 	if ( list->head ) {
 		list->head->prev = NULL;
 	} else {
 		list->tail = NULL;
 	}
-	free(old_head);
+	return old_head;
 }
 
 

@@ -57,10 +57,6 @@ typedef struct data_buf_s
 	 */
 	void *content;
 
-	/** the used size in the memory buffer in bytes
-	 */
-	size_t used_size;
-
 	/** the maximum size of the memory buffer in bytes, if strategy & BUF_DYNAMIC
 	 * this can be grown
 	 */

@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <assert.h>
 
 #include "ah5.h"
 #include "ah5_impl.h"
@@ -84,23 +85,26 @@ int ah5_init( ah5_t* pself )
 
 int ah5_finalize( ah5_t self )
 {
-	/* wait for the writer thread to finish its work */
+	// wait for the writer thread to finish its work; this locks the mutex
 	if ( runner_thread_wait(self) ) RETURN_ERROR(self->logging);
 	
-	/* tell the writer thread to terminate */
+	// tell the writer thread to terminate
 	self->thread_stop = 1;
 	if ( pthread_cond_signal(&(self->cond)) ) RETURN_ERROR(self->logging);
 	if ( pthread_mutex_unlock(&(self->mutex)) ) RETURN_ERROR(self->logging);
+	
+	LOG_STATUS(self->logging, "finalizing Async HDF5 instance");
 	
 	// cleanup resources
 	pthread_join( self->thread, NULL);
 	pthread_cond_destroy(&self->cond);
 	pthread_mutex_destroy(&self->mutex);
 	buf_free(&self->data_buf);
+	assert(cl_empty(&self->commands));
+	
 	log_destroy(&self->logging);
 	free(self);
 	
-	LOG_STATUS(self->logging, "finalized Async HDF5 instance");
 	return 0;
 }
 
@@ -154,11 +158,15 @@ int ah5_start(ah5_t self, char* file_name) { return ah5_open(self, file_name); }
 
 int ah5_open( ah5_t self, char* file_name )
 {
-	/* wait for the writer thread to finish its work */
+	// wait for the writer thread to finish its work; this locks the mutex
 	if ( runner_thread_wait(self) ) RETURN_ERROR(self->logging);
+	
 	LOG_DEBUG(self->logging, "async HDF5 opening file");
-	/* store the file name */
+	
+	// open the file
 	self->file = H5Fcreate( file_name, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+	
+	// don't release the lock, close will do it
 	return 0;
 }
 
@@ -166,11 +174,13 @@ int ah5_open( ah5_t self, char* file_name )
 int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 				hsize_t* dims, hsize_t* lbounds, hsize_t* ubounds )
 {
-	LOG_DEBUG(self->logging, "adding a write command to the list");
+	// don't take the lock, open should have done it
 	
-	/* increase the array containing all write commands */
+	// create a new write command in the list
+	LOG_DEBUG(self->logging, "adding a write command to the list");	
 	data_write_t *command = cl_insert_tail(&self->commands);
 	
+	// fill the command
 	command->buf = data;
 	command->rank = rank;
 	for ( int ii = 0; ii<rank; ++ii ) {
@@ -178,8 +188,9 @@ int ah5_write( ah5_t self, void* data, char* name, hid_t type, int rank,
 		command->lbounds[ii] = lbounds[ii];
 		command->ubounds[ii] = ubounds[ii];
 	}
-	command->name = malloc(strlen(name)+1);
-	strcpy(command->name, name);
+	size_t name_len = strlen(name)+1;
+	command->name = malloc(name_len);
+	memcpy(command->name, name, name_len);
 	command->type = type;
 	
 	LOG_DEBUG(self->logging, "added writing command for data %s of rank %u", name, (unsigned)rank);
@@ -194,45 +205,57 @@ int ah5_close( ah5_t self )
 	LOG_DEBUG(self->logging, "sealing write command list");
 	int64_t start_time = clockget();
 	
-	size_t buf_size = 0;
-	/* compute the total size of the data */
+	ptrdiff_t buf_size = 0;
+	// compute the total size of the data
 	for ( data_write_t *cmd = cl_head(&self->commands); cmd; cmd = cmd->next ) {
-		size_t data_size = H5Tget_size(cmd->type);
+		ptrdiff_t data_size = H5Tget_size(cmd->type);
 		for ( unsigned dim = 0; dim < cmd->rank; ++dim ) {
-			/* ubounds is just after the data, so the difference with lbound is the size */
+			// ubounds is just after the data, so the difference with lbound is the size
 			data_size *= cmd->ubounds[dim]-cmd->lbounds[dim];
 		}
 		buf_size += data_size;
 	};
 	
-	/* allocate a buffer able to contain it all */
+	// try to grow the buffer to contain the whole data
 	buf_grow(&self->data_buf, buf_size);
 	
-	/* copy the data into the bufer */
+	// copy the data into the buffer
 	void *buf = self->data_buf.content;
 	data_write_t *wrt;
 	for ( wrt = cl_tail(&self->commands); wrt; wrt = wrt->prev ) {
 		int64_t cmd_start_time = clockget();
-		size_t data_size = H5Tget_size(wrt->type);
-		// don't do the copy if there isn't enough space in the buffer
-		if ( self->data_buf.max_size - self->data_buf.used_size < data_size ) break;
+		
+		// stop the copy if there isn't enough space in the buffer
+		ptrdiff_t data_size = H5Tget_size(wrt->type);
+		ptrdiff_t buf_sz = (char*)(self->data_buf.content)-(char*)buf + self->data_buf.max_size;
+		if ( buf_sz < data_size ) break;
+		
+		// do the actual copy for this command
 		slicecpy(buf, wrt->buf, wrt->type, wrt->rank, wrt->dims, wrt->lbounds, 
-						wrt->ubounds, self->parallel_copy);
-		/* since only the data has been copied, update dims, lbounds & ubounds */
+				wrt->ubounds, self->parallel_copy);
+		wrt->buf = buf;
+		buf = ((char*)buf) + data_size;
+		
+		// since only the data has been copied, update dims, lbounds & ubounds
 		for ( unsigned dim = 0; dim<wrt->rank; ++dim ) {
 			data_size *= wrt->ubounds[dim]-wrt->lbounds[dim];
 			wrt->dims[dim] = wrt->ubounds[dim] - wrt->lbounds[dim];
 			wrt->ubounds[dim] -= wrt->lbounds[dim];
 			wrt->lbounds[dim] = 0;
 		}
-		wrt->buf = buf;
-		buf = ((char*)buf) + data_size;
-		LOG_DEBUG(self->logging, "copy duration: %" PRId64 "us", clockget()-cmd_start_time);
+		
+		LOG_DEBUG(self->logging, "copy duration for %s: %" PRId64 "us", wrt->name, clockget()-cmd_start_time);
 	};
 	
 	// handle those write commands we didn't manage to store because of missing space
-	if (wrt) for ( data_write_t *cmd = cl_head(&self->commands); cmd != wrt; cmd = cmd->next ) {
+	if (wrt) while ( cl_head(&self->commands) !=  wrt ) {
+		data_write_t *cmd = cl_remove_head(&self->commands);
+		int64_t cmd_start_time = clockget();
+		
 		dw_run(cmd, self->file, self->logging);
+		dw_free(cmd);
+		
+		LOG_DEBUG(self->logging, "Sync write duration for %s: %" PRId64 "us", wrt->name, clockget()-cmd_start_time);
 	}
 	
 	/* wake up the writer thread */

@@ -37,37 +37,31 @@
  */
 struct ah5_s {
 
-	/** a mutex controling access to this instance
-	 */
+	/// a mutex controling access to this instance
 	pthread_mutex_t mutex;
 
-	/** a condition variable used to signal that the instance content has changed
-	 */
+	/// a condition variable used to signal that the instance content has changed
 	pthread_cond_t cond;
 
 	/// The data buffer
 	data_buf_t data_buf;
 
-	/** The actual command list or NULL if empty
-	 */
+	/// The actual command list
 	write_list_t commands;
 
-	/** the thread executing the command list
-	 */
+	/// the thread executing the command list
 	pthread_t thread;
 
-	/** Whether to stop the thread executing the command list
-	 */
+	/// Whether to stop the thread executing the command list
 	int thread_stop;
 
-	/** the opened file commands relate to
-	 */
+	/// the opened file commands relate to
 	hid_t file;
 	
-	/** whether to use all core for copies
-	 */
+	/// whether to use all core for copies
 	int parallel_copy;
 
+	/// the info about logging
 	logging_t logging;
 
 };

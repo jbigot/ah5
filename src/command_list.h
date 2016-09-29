@@ -72,6 +72,9 @@ typedef struct data_write_s
 void dw_run( data_write_t *cmd, hid_t file, logging_t log );
 
 
+void dw_free( data_write_t *cmd );
+
+
 /** A list of write commands
  */
 typedef struct command_list_s
@@ -107,6 +110,13 @@ static inline data_write_t *cl_tail( write_list_t *list ) { return list->tail; }
 static inline data_write_t *cl_head( write_list_t *list ) { return list->head; }
 
 
+/** Tests whether the list is empty
+ * @param list the list to test
+ * @return whether the list is empty
+ */
+static inline int cl_empty( write_list_t *list ) { return !list->head; }
+
+
 /** Inserts a new node in the list just before the one provided
  * @param list the list to modify
  * @return the inserted tail
@@ -116,7 +126,8 @@ data_write_t *cl_insert_tail( write_list_t *list );
 
 /** Removes the first node from a list
  * @param list the list from which to remove the first node
+ * @return the just removed head
  */
-void cl_remove_head( write_list_t *list );
+data_write_t *cl_remove_head( write_list_t *list );
 
 #endif /* AH5_COMMAND_LIST_H__ */

@@ -83,7 +83,7 @@ set(Ah5_SRC
 
 #C static version
 add_library(ah5.static STATIC ${Ah5_SRC})
-add_compiler_flags(ah5.static PRIVATE -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
+add_compiler_flags(ah5.static PRIVATE -pedantic -Wall -Wextra -Werror -pedantic-errors)
 set_property(TARGET ah5.static PROPERTY OUTPUT_NAME ah5)
 set_property(TARGET ah5.static PROPERTY VERSION ${Ah5_VERSION})
 set_property(TARGET ah5.static PROPERTY SOVERSION ${Ah5_VERSION_MAJOR})
@@ -100,7 +100,7 @@ install(TARGETS ah5.static EXPORT Ah5_export ARCHIVE DESTINATION lib)
 
 #C shared version
 add_library(ah5.shared SHARED ${Ah5_SRC})
-add_compiler_flags(ah5.shared PRIVATE -pedantic -Wall -Wextra -Werror -Wfatal-errors -pedantic-errors)
+add_compiler_flags(ah5.shared PRIVATE -pedantic -Wall -Wextra -Werror -pedantic-errors)
 set_property(TARGET ah5.shared PROPERTY OUTPUT_NAME ah5)
 set_property(TARGET ah5.shared PROPERTY VERSION ${Ah5_VERSION})
 set_property(TARGET ah5.shared PROPERTY SOVERSION ${Ah5_VERSION_MAJOR})
