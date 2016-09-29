@@ -75,19 +75,20 @@ int main(int argc, char** argv)
 	for (ii=0; ii<100; ++ii) {
 		if (ii%10 == 0) {
 			sprintf(fname, "data.%d.h5", ii);
-			ah5_start(ah5_inst, fname);
+			ah5_open(ah5_inst, fname);
 			ah5_write(ah5_inst, data, "data", H5T_NATIVE_DOUBLE, 2, bounds, zsize, bounds );
-			ah5_finish(ah5_inst);
+			ah5_close(ah5_inst);
 		}
 		data_compute(data, data_next);
 		data_swap = data;
 		data = data_next;
 		data_next = data_swap;
 	}
+	
 	sprintf(fname, "data.%d.h5", ii);
-	ah5_start(ah5_inst, fname);
+	ah5_open(ah5_inst, fname);
 	ah5_write(ah5_inst, data, "data", H5T_NATIVE_DOUBLE, 2, bounds, zsize, bounds );
-	ah5_finish(ah5_inst);
+	ah5_close(ah5_inst);
 
 	ah5_finalize(ah5_inst);
 	free(data);

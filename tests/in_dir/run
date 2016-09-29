@@ -11,5 +11,9 @@ trap "rm -rf '${TMP_DIR}'" EXIT
 mkdir "${TMP_DIR}/tstbuild"
 cd "${TMP_DIR}/tstbuild"
 cmake "${TSTSRC_DIR}"
-make -j
-make -j test
+# can't run make test as that would result in an infinite loop calling this test amongst others
+make
+./ah5_c_shared
+./ah5_c_static
+./ah5_f_shared
+./ah5_f_static
