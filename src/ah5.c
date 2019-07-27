@@ -222,7 +222,7 @@ inline static int64_t clockget()
 	return (int64_t)tv.tv_sec*1000*1000 + tv.tv_usec;
 }
 
-#if H5_VERS_MAJOR >= 1 && H5_VERS_MINOR >= 8 && H5_VERS_RELEASE >= 14
+#if H5_VERS_MINOR > 8 || H5_VERS_MINOR == 8 && H5_VERS_RELEASE >= 14
 #define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_ID_g
 #else
 #define CLS_DSET_CREATE H5P_CLS_DATASET_CREATE_g
