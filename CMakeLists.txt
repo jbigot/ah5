@@ -35,6 +35,9 @@ option(BUILD_Fortran
 option(BUILD_OpenMP
 	"Enables support for parallel copy with OpenMP"
 	ON)
+option(HDF5_PREFER_PARALLEL
+	"Prefer parallel HDF5 over sequential"
+	OFF)
 
 
 # Options handling
@@ -49,7 +52,6 @@ endif()
 
 include(CMakePackageConfigHelpers)
 include(CTest)
-include(GenerateExportHeader)
 include(GNUInstallDirs)
 find_package(HDF5 REQUIRED COMPONENTS C ${Fortran_COMPONENT})
 if("${BUILD_OpenMP}")
@@ -81,7 +83,6 @@ list(GET Ah5_VERSION_list 2 Ah5_VERSION_PATCH)
 add_library(Ah5_C
 	src/ah5.c
 )
-generate_export_header(Ah5_C BASE_NAME ah5)
 target_link_libraries(Ah5_C PUBLIC ${OpenMP_C_LIB} ${HDF5_C_LIBRARIES})
 target_include_directories(Ah5_C PUBLIC
 	"$<BUILD_INTERFACE:${Ah5_SOURCE_DIR}/include/>"
@@ -107,7 +108,7 @@ install(TARGETS Ah5_C EXPORT AH5_EXPORT
 	LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" ${LIBRARY_COMPONENT}
 	INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
-install(FILES include/ah5.h "${Ah5_BINARY_DIR}/ah5_export.h"
+install(FILES include/ah5.h
 	DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 	COMPONENT Development
 )

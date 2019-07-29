@@ -1,4 +1,0 @@
-- Add doxygen generation to CMakeLists.txt
-- A max memory size option
-- Add paraconf support
-- Add memmap to local FS support
